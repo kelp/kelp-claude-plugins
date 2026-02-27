@@ -1,11 +1,15 @@
 ---
-description: Zig 0.15.x correct patterns
-model-invocation: true
+description: >
+  Correct Zig 0.15.x patterns for I/O, ArrayList, format strings,
+  and build.zig. Use when writing or reviewing any Zig code --
+  Claude's training data is outdated for these APIs.
 ---
 
 # Zig 0.15.x Patterns -- Quick Reference
 
 Your Zig training is outdated. These are the CORRECT patterns.
+For full details with error diagnostics, read
+`docs/ZIG_BREAKING_CHANGES.md`.
 
 ## I/O: Buffered Writers (Writergate)
 

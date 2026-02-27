@@ -1,6 +1,10 @@
 ---
-description: Audit Zig code for 0.15.x correctness
+description: >
+  Audit Zig source files for Zig 0.15.x mistakes -- checks for
+  removed APIs (getStdOut, usingnamespace, BoundedArray, async),
+  missing flush, wrong ArrayList usage, and ambiguous format strings.
 disable-model-invocation: true
+argument-hint: "[file]"
 ---
 
 # /zig-check [file]
