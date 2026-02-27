@@ -29,7 +29,35 @@ The 6 blind spots, verified by compiler probes:
 
 ## Usage
 
-Copy these files into your Zig project:
+### Option A: Install as a Claude Code plugin
+
+This repo is a Claude Code plugin. Install the skills
+directly:
+
+```bash
+# Test locally (from a clone)
+claude --plugin-dir /path/to/zig-claude-kit
+
+# Or install from a marketplace (once published)
+/plugin install zig-claude-kit@marketplace-name
+```
+
+Skills are available as `/zig-claude-kit:zig-patterns` and
+`/zig-claude-kit:zig-check`.
+
+**You still need the CLAUDE.md corrections.** Plugin skills
+teach Claude the right patterns on demand, but CLAUDE.md
+ensures Claude reads the corrections before writing any Zig
+code. Copy these into your project:
+
+```
+CLAUDE.md                         # Core training corrections
+docs/ZIG_BREAKING_CHANGES.md      # Full reference with code
+```
+
+### Option B: Copy everything into your project
+
+Copy all files directly:
 
 ```
 CLAUDE.md                         # Core training corrections
@@ -38,12 +66,15 @@ docs/ZIG_BREAKING_CHANGES.md      # Full reference with code
 .claude/skills/zig-check/         # Audit checklist skill
 ```
 
-Or reference from your project's CLAUDE.md:
+The `.claude/skills/` directory contains symlinks to
+`skills/` at the repo root. Copy the actual files, not the
+symlinks:
 
-```markdown
-## Zig Training Corrections
-See zig-claude-kit for Zig 0.15.x training overrides.
-Read `docs/ZIG_BREAKING_CHANGES.md` before writing any Zig code.
+```bash
+cp -rL zig-claude-kit/.claude/skills/zig-patterns \
+       your-project/.claude/skills/
+cp -rL zig-claude-kit/.claude/skills/zig-check \
+       your-project/.claude/skills/
 ```
 
 ## Re-testing After Model or Zig Upgrades
