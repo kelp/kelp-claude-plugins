@@ -35,11 +35,7 @@ This repo is a Claude Code plugin. Install the skills
 directly:
 
 ```bash
-# Test locally (from a clone)
 claude --plugin-dir /path/to/zig-claude-kit
-
-# Or install from a marketplace (once published)
-/plugin install zig-claude-kit@marketplace-name
 ```
 
 Skills are available as `/zig-claude-kit:zig-patterns` and
