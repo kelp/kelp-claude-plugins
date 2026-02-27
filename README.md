@@ -5,10 +5,11 @@ for 0.15.x projects.
 
 ## Problem
 
-Claude (Opus 4.5, Sonnet 4.5) consistently generates broken Zig
-code for 6 specific patterns. Blind testing confirmed these are
-baked into the models' training data and persist across fresh
-conversations with no project context.
+Claude consistently generates broken Zig code for 6 specific
+patterns. Blind testing against Opus 4.6, Sonnet 4.6 (and
+earlier 4.5 models) confirmed these are baked into training
+data and persist across fresh conversations with no project
+context.
 
 ## What's Covered
 
@@ -47,21 +48,71 @@ Read `docs/ZIG_BREAKING_CHANGES.md` before writing any Zig code.
 
 ## Re-testing After Model or Zig Upgrades
 
-The `scripts/` directory contains tools to re-validate whether
-these corrections are still needed:
+Use `just` to run the test suite:
 
 ```bash
-# Run compiler probes against current Zig version
+just              # list all recipes
+
+# Automated: blind-test models via the Claude API
+just eval                             # sonnet + opus 4.6
+just eval-model claude-haiku-4-5      # test a specific model
+
+# Re-compile existing probes (no API calls)
+just compile-test claude-sonnet-4-6
+
+# Validate breaking change claims against current Zig
+just audit
+
+# Clean up generated files
+just clean
+```
+
+Requires `ANTHROPIC_API_KEY` in your environment and `uv`
+for the Python eval script.
+
+You can also run the scripts directly:
+
+```bash
+# Automated blind test via API
+uv run scripts/zig-knowledge-eval.py
+uv run scripts/zig-knowledge-eval.py --models claude-sonnet-4-6
+
+# Compiler probes against current Zig version
 ./scripts/zig-knowledge-audit.sh
 
-# Blind-test Claude without project context
-# (follow prompts in zig-knowledge-prompts.md, save responses,
-# then compile-test them)
-./scripts/zig-knowledge-test.sh probes/
+# Compile-test previously saved responses
+./scripts/zig-knowledge-test.sh probes/claude-sonnet-4-6/
 ```
 
 If all probes pass and Claude generates correct code without
 these docs, the corrections can be retired.
+
+## Latest Results (2026-02-27)
+
+Tested against Zig 0.15.2 with no project context.
+
+| Probe | Sonnet 4.6 | Opus 4.6 |
+|-------|------------|----------|
+| 01 stdout (Writergate) | FAIL | FAIL |
+| 02 stderr (Writergate) | FAIL | FAIL* |
+| 03 ArrayList | FAIL | FAIL |
+| 04 BoundedArray | FAIL | FAIL |
+| 05 tokenize | pass | FAIL |
+| 06 testing | pass | pass |
+| 07 process args (Writergate) | FAIL | FAIL |
+| 08 JSON | pass | FAIL |
+| 09 format method | FAIL | FAIL |
+| 10 mixin (usingnamespace) | FAIL | FAIL |
+| 11 division | pass | pass |
+| 12 for loop with index | pass | pass |
+| 13 build.zig | FAIL* | FAIL* |
+| 14 async/await | FAIL | FAIL |
+
+\* Compiled only due to Zig's lazy analysis (unreferenced
+function bodies are not analyzed). Manual inspection confirmed
+the code uses the wrong pattern.
+
+All 6 documented blind spots remain in both 4.6 models.
 
 ## License
 
