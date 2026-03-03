@@ -1,9 +1,9 @@
-# CLAUDE.md -- Zig 0.15.x Training Corrections
+## Zig 0.15.x Training Corrections
 
 Your Zig training is outdated. This project uses Zig 0.15.x
 with breaking changes that affect code you generate by default.
 
-## The 6 Patterns You Get Wrong
+### The 6 Patterns You Get Wrong
 
 Before writing ANY Zig code, internalize these corrections:
 
@@ -19,7 +19,7 @@ Before writing ANY Zig code, internalize these corrections:
 6. `std.ArrayList(T).init(allocator)` -- **removed**. Use
    `std.ArrayListUnmanaged(T){}` with allocator per call.
 
-## I/O Pattern (Writergate) -- Memorize This
+### I/O Pattern (Writergate) -- Memorize This
 
 ```zig
 // WRONG: std.io.getStdOut().writer()
@@ -34,7 +34,7 @@ try stdout.print("Hello, {s}\n", .{name});
 
 Always `defer flush() catch {}` or data is lost.
 
-## build.zig Pattern
+### build.zig Pattern
 
 ```zig
 // WRONG:
@@ -56,12 +56,8 @@ const exe = b.addExecutable(.{
 });
 ```
 
-## Quick Lookup
+### Quick Lookup
 
-When you hit a compile error, check
-`docs/ZIG_BREAKING_CHANGES.md` for the full reference table,
+When you hit a compile error, run
+`/zig-claude-kit:zig-patterns` for the full reference table,
 code patterns, and error message diagnostics.
-
-```
-grep "error message" docs/ZIG_BREAKING_CHANGES.md
-```
