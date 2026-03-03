@@ -1,7 +1,7 @@
 # zig-claude-kit
 
-Corrective context files that fix Claude's outdated Zig training
-for 0.15.x projects.
+Corrective context files that fix Claude's outdated Zig
+training for 0.15.x projects.
 
 ## Problem
 
@@ -15,8 +15,8 @@ context.
 
 The 6 blind spots, verified by compiler probes:
 
-1. **Writergate** -- `std.io.getStdOut()`/`getStdErr()` removed;
-   must use buffered writer pattern
+1. **Writergate** -- `std.io.getStdOut()`/`getStdErr()`
+   removed; must use buffered writer pattern
 2. **build.zig** -- `.root_source_file` moved inside
    `.root_module = b.createModule(...)`
 3. **Format methods** -- signature changed to
@@ -29,69 +29,58 @@ The 6 blind spots, verified by compiler probes:
 
 ## Usage
 
-### Option A: Install as a Claude Code plugin
+### Install from the marketplace
 
-This repo is a Claude Code plugin. Install the skills
-directly:
-
-```bash
-claude --plugin-dir /path/to/zig-claude-kit
-```
-
-Skills are available as `/zig-claude-kit:zig-patterns` and
-`/zig-claude-kit:zig-check`.
-
-**You still need the CLAUDE.md corrections.** Plugin skills
-teach Claude the right patterns on demand, but CLAUDE.md
-ensures Claude reads the corrections before writing any Zig
-code. Copy these into your project:
-
-```
-CLAUDE.md                         # Core training corrections
-docs/ZIG_BREAKING_CHANGES.md      # Full reference with code
-```
-
-### Option B: Copy everything into your project
-
-Copy all files directly:
-
-```
-CLAUDE.md                         # Core training corrections
-docs/ZIG_BREAKING_CHANGES.md      # Full reference with code
-.claude/skills/zig-patterns/      # I/O, ArrayList, format patterns
-.claude/skills/zig-check/         # Audit checklist skill
-```
-
-The `.claude/skills/` directory contains symlinks to
-`skills/` at the repo root. Copy the actual files, not the
-symlinks:
+Add the plugin registry, then install the plugin:
 
 ```bash
-cp -rL zig-claude-kit/.claude/skills/zig-patterns \
-       your-project/.claude/skills/
-cp -rL zig-claude-kit/.claude/skills/zig-check \
-       your-project/.claude/skills/
+/plugin marketplace add kelp/kelp-claude-plugins
+/plugin install zig-claude-kit@kelp-claude-plugins
 ```
+
+### How it works
+
+**SessionStart hook** -- When you open Claude Code in a
+directory containing `build.zig` or `.zig` files, the plugin
+checks whether your `CLAUDE.md` has the Zig 0.15.x
+corrections. If they are missing, it tells you to run
+`/zig-init`.
+
+**`/zig-init`** -- Adds the full set of Zig 0.15.x training
+corrections to your project's `CLAUDE.md`. If the file does
+not exist, it creates one. If corrections are already present,
+it reports that and stops.
+
+### Skills
+
+The plugin provides three skills:
+
+- **zig-patterns** -- I/O, ArrayList, and format string
+  corrections with code examples
+- **zig-check** -- Audit checklist for reviewing generated
+  Zig code against known blind spots
+- **zig-init** -- Adds training corrections to the project's
+  CLAUDE.md
 
 ## Re-testing After Model or Zig Upgrades
 
-Use `just` to run the test suite:
+Use `make` to run the test suite:
 
 ```bash
-just              # list all recipes
+make                                   # list targets
 
 # Automated: blind-test models via the Claude API
-just eval                             # sonnet + opus 4.6
-just eval-model claude-haiku-4-5      # test a specific model
+make eval                              # sonnet + opus 4.6
+make eval-model MODEL=claude-haiku-4-5 # test specific model
 
 # Re-compile existing probes (no API calls)
-just compile-test claude-sonnet-4-6
+make compile-test MODEL=claude-sonnet-4-6
 
 # Validate breaking change claims against current Zig
-just audit
+make audit
 
 # Clean up generated files
-just clean
+make clean
 ```
 
 Requires `ANTHROPIC_API_KEY` in your environment and `uv`
@@ -101,8 +90,9 @@ You can also run the scripts directly:
 
 ```bash
 # Automated blind test via API
-uv run scripts/zig-knowledge-eval.py
-uv run scripts/zig-knowledge-eval.py --models claude-sonnet-4-6
+uv run ./scripts/zig-knowledge-eval.py
+uv run ./scripts/zig-knowledge-eval.py \
+  --models claude-sonnet-4-6
 
 # Compiler probes against current Zig version
 ./scripts/zig-knowledge-audit.sh
