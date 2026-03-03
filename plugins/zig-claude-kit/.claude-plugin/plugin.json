@@ -6,6 +6,5 @@
     "name": "Travis Cole"
   },
   "homepage": "https://github.com/kelp/kelp-claude-plugins",
-  "repository": "https://github.com/kelp/kelp-claude-plugins",
-  "hooks": "./hooks/hooks.json"
+  "repository": "https://github.com/kelp/kelp-claude-plugins"
 }
