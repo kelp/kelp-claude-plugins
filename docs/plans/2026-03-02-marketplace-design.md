@@ -28,22 +28,27 @@ kelp-claude-plugins/
 │   └── zig-claude-kit/
 │       ├── .claude-plugin/
 │       │   └── plugin.json
-│       ├── skills/
-│       │   ├── zig-patterns/
-│       │   │   └── SKILL.md
-│       │   └── zig-check/
-│       │       └── SKILL.md
-│       ├── docs/
-│       │   └── ZIG_BREAKING_CHANGES.md
+│       ├── hooks/
+│       │   └── hooks.json
 │       ├── scripts/
+│       │   ├── session-start.sh
 │       │   ├── zig-knowledge-audit.sh
 │       │   ├── zig-knowledge-eval.py
 │       │   ├── zig-knowledge-prompts.md
 │       │   └── zig-knowledge-test.sh
+│       ├── skills/
+│       │   ├── zig-patterns/
+│       │   │   └── SKILL.md
+│       │   ├── zig-check/
+│       │   │   └── SKILL.md
+│       │   └── zig-init/
+│       │       └── SKILL.md
+│       ├── docs/
+│       │   ├── ZIG_BREAKING_CHANGES.md
+│       │   └── claude-md-fragment.md
 │       ├── probes/
 │       │   ├── claude-opus-4-6/
 │       │   └── claude-sonnet-4-6/
-│       ├── CLAUDE.md
 │       ├── README.md
 │       └── justfile
 ├── README.md
@@ -77,7 +82,7 @@ kelp-claude-plugins/
 }
 ```
 
-## plugin.json (unchanged content, moved location)
+## plugin.json
 
 ```json
 {
@@ -88,9 +93,57 @@ kelp-claude-plugins/
     "name": "Travis Cole"
   },
   "homepage": "https://github.com/kelp/kelp-claude-plugins",
-  "repository": "https://github.com/kelp/kelp-claude-plugins"
+  "repository": "https://github.com/kelp/kelp-claude-plugins",
+  "hooks": "./hooks/hooks.json"
 }
 ```
+
+## Correction Delivery
+
+The plugin delivers Zig corrections through two mechanisms:
+
+### SessionStart Hook
+
+A hook script runs at session start and:
+
+1. Checks if this is a Zig project (looks for `build.zig`
+   or `*.zig` files)
+2. Checks if the project's CLAUDE.md already contains the
+   corrections (looks for "Writergate" marker)
+3. If corrections are missing, injects context telling
+   Claude to run `/zig-init`
+
+```bash
+#!/bin/bash
+# scripts/session-start.sh
+if [ ! -f "build.zig" ]; then exit 0; fi
+if grep -q "Writergate" CLAUDE.md 2>/dev/null; then exit 0; fi
+
+echo "This is a Zig project missing Zig 0.15.x corrections."
+echo "Run /zig-init to add them to this project's CLAUDE.md."
+exit 0
+```
+
+### /zig-init Skill
+
+A skill that adds Zig 0.15.x corrections to the project's
+CLAUDE.md. It reads `docs/claude-md-fragment.md` from the
+plugin directory (`${CLAUDE_PLUGIN_ROOT}`) and:
+
+- If no CLAUDE.md exists, creates one with the fragment
+- If CLAUDE.md exists, appends the fragment
+
+The fragment contains the 6 pattern corrections and code
+examples — the essential content from the current CLAUDE.md,
+formatted as a section that can be appended.
+
+### docs/claude-md-fragment.md
+
+A standalone section of CLAUDE.md content containing the
+Zig 0.15.x corrections. Designed to be appended to any
+existing CLAUDE.md. The current repo-root CLAUDE.md becomes
+this fragment (the plugin itself no longer needs a CLAUDE.md
+at its root).
 
 ## Install Flow
 
@@ -103,7 +156,7 @@ kelp-claude-plugins/
 
 | Current path | New path |
 |---|---|
-| `CLAUDE.md` | `plugins/zig-claude-kit/CLAUDE.md` |
+| `CLAUDE.md` | Becomes `plugins/zig-claude-kit/docs/claude-md-fragment.md` |
 | `README.md` | `plugins/zig-claude-kit/README.md` |
 | `docs/` | `plugins/zig-claude-kit/docs/` |
 | `skills/` | `plugins/zig-claude-kit/skills/` |
@@ -118,11 +171,16 @@ kelp-claude-plugins/
 |---|---|
 | `.claude-plugin/marketplace.json` | Marketplace catalog |
 | `README.md` | Marketplace landing page |
+| `plugins/zig-claude-kit/hooks/hooks.json` | SessionStart hook config |
+| `plugins/zig-claude-kit/scripts/session-start.sh` | Detects Zig projects, prompts /zig-init |
+| `plugins/zig-claude-kit/skills/zig-init/SKILL.md` | Adds corrections to project CLAUDE.md |
+| `plugins/zig-claude-kit/docs/claude-md-fragment.md` | CLAUDE.md content to inject |
 
 ## Files Removed
 
 | Path | Reason |
 |---|---|
+| `CLAUDE.md` (root) | Content moves to `claude-md-fragment.md` |
 | `.claude/settings.local.json` | Recreate at root if needed |
 
 ## Future Plugins
