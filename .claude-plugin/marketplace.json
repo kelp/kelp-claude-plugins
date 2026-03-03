@@ -13,7 +13,7 @@
       "name": "zig-claude-kit",
       "source": "./plugins/zig-claude-kit",
       "description": "Corrective context for Zig 0.15.x that fixes Claude's outdated training data. Covers I/O (Writergate), build.zig, format strings, ArrayList, BoundedArray, and usingnamespace.",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "strict": true
     }
   ]
