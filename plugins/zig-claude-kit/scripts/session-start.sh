@@ -14,6 +14,14 @@ if grep -q "Writergate" CLAUDE.md 2>/dev/null; then
   exit 0
 fi
 
+FRAGMENT="$(dirname "$0")/../docs/claude-md-fragment.md"
+
+# Inject corrections as immediate context
+if [ -f "$FRAGMENT" ]; then
+  cat "$FRAGMENT"
+  echo ""
+fi
+
 # Instruct Claude to alert the user immediately
 cat <<'INSTRUCTIONS'
 BLOCKING: This Zig project has no training corrections in
@@ -27,15 +35,7 @@ user:
 Please run /zig-claude-kit:zig-init before we continue."
 
 Do NOT proceed with other work until the user has run
-/zig-init or explicitly declined. The corrections below
+/zig-init or explicitly declined. The corrections above
 cover this session only and will be lost when it ends.
 INSTRUCTIONS
-
-FRAGMENT="$(dirname "$0")/../docs/claude-md-fragment.md"
-
-# Inject corrections as session context
-if [ -f "$FRAGMENT" ]; then
-  echo ""
-  cat "$FRAGMENT"
-fi
 exit 0
