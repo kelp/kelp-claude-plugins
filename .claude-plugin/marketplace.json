@@ -13,8 +13,13 @@
       "name": "zig-claude-kit",
       "source": "./plugins/zig-claude-kit",
       "description": "Corrective context for Zig 0.15.x that fixes Claude's outdated training data. Covers I/O (Writergate), build.zig, format strings, ArrayList, BoundedArray, and usingnamespace.",
-      "version": "1.0.4",
       "strict": true
+    },
+    {
+      "name": "tdd-pipeline",
+      "source": "./plugins/tdd-pipeline",
+      "description": "Language-agnostic TDD pipeline with test-first agents, review loops, and verify gates.",
+      "strict": false
     }
   ]
 }

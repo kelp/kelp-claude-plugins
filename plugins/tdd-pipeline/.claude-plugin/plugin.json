@@ -1,0 +1,10 @@
+{
+  "name": "tdd-pipeline",
+  "description": "Language-agnostic TDD pipeline with test-first agents, review loops, and verify gates.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Travis Cole"
+  },
+  "homepage": "https://github.com/kelp/kelp-claude-plugins",
+  "repository": "https://github.com/kelp/kelp-claude-plugins"
+}
