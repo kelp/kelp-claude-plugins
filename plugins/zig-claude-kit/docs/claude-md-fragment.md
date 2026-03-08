@@ -3,7 +3,7 @@
 Your Zig training is outdated. This project uses Zig 0.15.x
 with breaking changes that affect code you generate by default.
 
-### The 6 Patterns You Get Wrong
+### The Patterns You Get Wrong
 
 Before writing ANY Zig code, internalize these corrections:
 
@@ -18,6 +18,17 @@ Before writing ANY Zig code, internalize these corrections:
    `ArrayListUnmanaged.initBuffer`.
 6. `std.ArrayList(T).init(allocator)` -- **removed**. Use
    `std.ArrayListUnmanaged(T){}` with allocator per call.
+7. `/` on runtime signed integers -- **compile error**. Use
+   `@divTrunc`, `@divFloor`, or `@divExact`.
+8. `std.mem.tokenize` -- **renamed**. Use `tokenizeAny`,
+   `tokenizeScalar`, or `tokenizeSequence`.
+9. `std.process.args()` -- **changed**. Use
+   `argsAlloc(allocator)`, returns owned slice, must free.
+10. `for (items) |item, i|` -- **compile error**. Use
+    `for (items, 0..) |item, i|` with explicit index range.
+11. `async` / `await` -- **removed** from the language.
+12. `std.json.Parser` -- **redesigned**. Use
+    `std.json.parseFromSlice(T, allocator, text, .{})`.
 
 ### I/O Pattern (Writergate) -- Memorize This
 
@@ -33,6 +44,9 @@ try stdout.print("Hello, {s}\n", .{name});
 ```
 
 Always `defer flush() catch {}` or data is lost.
+
+Use `writerStreaming()` instead of `writer()` when output
+must respect O_APPEND (e.g. shell `>>` redirects).
 
 ### build.zig Pattern
 
@@ -55,6 +69,13 @@ const exe = b.addExecutable(.{
     }),
 });
 ```
+
+### Shell Rules
+
+Run commands exactly as shown. Do NOT append shell syntax
+like `2>&1`, `; echo "EXIT: $?"`, or pipe redirections.
+The Bash tool already captures stdout, stderr, and exit
+codes.
 
 ### Quick Lookup
 

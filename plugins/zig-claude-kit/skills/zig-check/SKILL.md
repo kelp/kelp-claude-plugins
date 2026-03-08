@@ -2,7 +2,8 @@
 description: >
   Audit Zig source files for Zig 0.15.x mistakes -- checks for
   removed APIs (getStdOut, usingnamespace, BoundedArray, async),
-  missing flush, wrong ArrayList usage, and ambiguous format strings.
+  missing flush, wrong ArrayList usage, ambiguous format strings,
+  signed division, and renamed stdlib functions.
 disable-model-invocation: true
 argument-hint: "[file]"
 ---
@@ -44,22 +45,38 @@ file path, line number, and the specific issue.
    - `usingnamespace` -- removed from language
    - `async` / `await` -- removed from language
    - `std.BoundedArray` -- use `ArrayListUnmanaged.initBuffer`
+   - `std.json.Parser` -- use `std.json.parseFromSlice`
 
-2. **takeDelimiterExclusive in while loops:**
+2. **Renamed API usage:**
+   - `std.mem.tokenize(` without `Any`/`Scalar`/`Sequence` --
+     use `tokenizeAny`, `tokenizeScalar`, or
+     `tokenizeSequence`
+   - `std.process.args()` without `Alloc` -- use
+     `std.process.argsAlloc(allocator)`
+
+3. **takeDelimiterExclusive in while loops:**
    - `while` loop calling `takeDelimiterExclusive` -- use
      `appendRemaining` instead (hangs on stdin)
 
-3. **Missing writer flush:**
+4. **Missing writer flush:**
    - `stdout_writer` or `stderr_writer` created without a
      corresponding `defer ... flush() catch {}`
 
-4. **ArrayList without allocator:**
+5. **ArrayList without allocator:**
    - `.append(`, `.appendSlice(`, `.deinit()` etc. without
      allocator as first argument (for `ArrayListUnmanaged`)
 
-5. **Ambiguous format strings:**
+6. **Ambiguous format strings:**
    - `"{}"` in print/format calls -- must use `{s}`, `{d}`,
      `{any}`, etc.
+
+7. **Signed division without builtins:**
+   - `/` or `%` on runtime signed integer variables -- use
+     `@divTrunc`, `@divFloor`, `@divExact`, `@rem`, `@mod`
+
+8. **Old for-loop index syntax:**
+   - `for (items) |item, i|` without explicit index range --
+     use `for (items, 0..) |item, i|`
 
 ### 4. Report results
 
@@ -100,3 +117,8 @@ For each critical issue, include a one-line fix suggestion:
 - "Add `defer stdout.flush() catch {};` after writer creation"
 - "Change `list.append(val)` to `list.append(allocator, val)`"
 - "Change `"{}"` to `"{s}"` (or appropriate specifier)"
+- "Replace `a / b` with `@divTrunc(a, b)` for signed integers"
+- "Replace `std.mem.tokenize` with `std.mem.tokenizeAny`"
+- "Replace `std.process.args()` with `std.process.argsAlloc`"
+- "Change `for (items) |x, i|` to `for (items, 0..) |x, i|`"
+- "Replace `std.json.Parser` with `std.json.parseFromSlice`"
