@@ -1,112 +1,78 @@
 # zig-claude-kit
 
-Corrective context files that fix Claude's outdated Zig
-training for 0.15.x projects.
+Claude generates broken Zig 0.15.x code. This plugin
+fixes it by injecting correct patterns into your
+project's CLAUDE.md.
 
-## Problem
+## The Problem
 
-Claude consistently generates broken Zig code for 6 specific
-patterns. Blind testing against Opus 4.6, Sonnet 4.6 (and
-earlier 4.5 models) confirmed these are baked into training
-data and persist across fresh conversations with no project
-context.
+Claude's Zig training predates 0.15.x. Fourteen test
+probes cover twelve broken patterns that produce code
+which fails to compile. Testing against Opus 4.6 and
+Sonnet 4.6 without project context confirmed all twelve
+persist across fresh conversations.
 
-## What's Covered
+## What It Corrects
 
-The 6 blind spots, verified by compiler probes:
-
-1. **Writergate** -- `std.io.getStdOut()`/`getStdErr()`
-   removed; must use buffered writer pattern
+1. **Writergate** -- `getStdOut()`/`getStdErr()` removed;
+   buffered writer pattern required
 2. **build.zig** -- `.root_source_file` moved inside
    `.root_module = b.createModule(...)`
-3. **Format methods** -- signature changed to
-   `(self, writer: *std.Io.Writer)`; `{}` requires `{f}`
-4. **usingnamespace** -- removed from language entirely
+3. **Format specifiers** -- generic `{}` removed; use
+   `{s}`, `{d}`, `{any}`, or `{f}` for format methods
+4. **usingnamespace** -- removed from language
 5. **BoundedArray** -- removed; use
    `ArrayListUnmanaged.initBuffer`
 6. **ArrayList.init()** -- managed API removed; use
    `ArrayListUnmanaged{}` with allocator per call
+7. **Signed division** -- `/` on runtime signed integers
+   requires `@divTrunc`
+8. **tokenize** -- renamed to `tokenizeAny`,
+   `tokenizeScalar`, `tokenizeSequence`
+9. **process.args()** -- now `argsAlloc(allocator)`;
+   returns owned slice
+10. **For-loop index** -- requires explicit range:
+    `for (items, 0..) |item, i|`
+11. **async/await** -- removed from the language
+12. **JSON Parser** -- redesigned to
+    `std.json.parseFromSlice`
 
-## Usage
-
-### Install from the marketplace
-
-Add the plugin registry, then install the plugin:
+## Install
 
 ```bash
 /plugin marketplace add kelp/kelp-claude-plugins
 /plugin install zig-claude-kit@kelp-claude-plugins
 ```
 
-### How it works
+## Use
 
-**SessionStart hook** -- When you open Claude Code in a
-directory containing `build.zig` or `.zig` files, the plugin
-checks whether your `CLAUDE.md` has the Zig 0.15.x
-corrections. If they are missing, it tells you to run
-`/zig-init`.
+Open a Zig project. The plugin detects Zig source files
+and prompts you to run `/zig-init`. That command appends
+corrections to your CLAUDE.md. Every agent reads them
+as project context.
 
-**`/zig-init`** -- Adds the full set of Zig 0.15.x training
-corrections to your project's `CLAUDE.md`. If the file does
-not exist, it creates one. If corrections are already present,
-it reports that and stops.
+**Commands:**
+- `/zig-init` -- inject corrections into CLAUDE.md
+- `/zig-patterns` -- quick reference with code examples
+- `/zig-check` -- audit source files for outdated APIs
 
-### Skills
+## Verify
 
-The plugin provides three skills:
-
-- **zig-patterns** -- I/O, ArrayList, and format string
-  corrections with code examples
-- **zig-check** -- Audit checklist for reviewing generated
-  Zig code against known blind spots
-- **zig-init** -- Adds training corrections to the project's
-  CLAUDE.md
-
-## Re-testing After Model or Zig Upgrades
-
-Use `make` to run the test suite:
+Run the blind-test suite to confirm corrections remain
+necessary:
 
 ```bash
-make                                   # list targets
-
-# Automated: blind-test models via the Claude API
-make eval                              # sonnet + opus 4.6
-make eval-model MODEL=claude-haiku-4-5 # test specific model
-
-# Re-compile existing probes (no API calls)
+make eval                              # test all models
+make eval-model MODEL=claude-haiku-4-5 # test one model
+make audit                             # probe current Zig
 make compile-test MODEL=claude-sonnet-4-6
-
-# Validate breaking change claims against current Zig
-make audit
-
-# Clean up generated files
-make clean
 ```
 
-Requires `ANTHROPIC_API_KEY` in your environment and `uv`
-for the Python eval script.
-
-You can also run the scripts directly:
-
-```bash
-# Automated blind test via API
-uv run ./scripts/zig-knowledge-eval.py
-uv run ./scripts/zig-knowledge-eval.py \
-  --models claude-sonnet-4-6
-
-# Compiler probes against current Zig version
-./scripts/zig-knowledge-audit.sh
-
-# Compile-test previously saved responses
-./scripts/zig-knowledge-test.sh probes/claude-sonnet-4-6/
-```
-
-If all probes pass and Claude generates correct code without
-these docs, the corrections can be retired.
+**Prerequisites:** `ANTHROPIC_API_KEY` and `uv`.
 
 ## Latest Results (2026-02-27)
 
-Tested against Zig 0.15.2 with no project context.
+Tested against Zig 0.15.2, no project context.
 
 | Probe | Sonnet 4.6 | Opus 4.6 |
 |-------|------------|----------|
@@ -116,7 +82,7 @@ Tested against Zig 0.15.2 with no project context.
 | 04 BoundedArray | FAIL | FAIL |
 | 05 tokenize | pass | FAIL |
 | 06 testing | pass | pass |
-| 07 process args (Writergate) | FAIL | FAIL |
+| 07 process args | FAIL | FAIL |
 | 08 JSON | pass | FAIL |
 | 09 format method | FAIL | FAIL |
 | 10 mixin (usingnamespace) | FAIL | FAIL |
@@ -125,12 +91,19 @@ Tested against Zig 0.15.2 with no project context.
 | 13 build.zig | FAIL* | FAIL* |
 | 14 async/await | FAIL | FAIL |
 
-\* Compiled only due to Zig's lazy analysis (unreferenced
-function bodies are not analyzed). Manual inspection confirmed
-the code uses the wrong pattern.
+\* Compiled only due to lazy analysis. Manual inspection
+confirmed wrong patterns.
 
-All 6 documented blind spots remain in both 4.6 models.
+When all probes pass without corrections, retire this
+plugin.
+
+## Reference
+
+- [Breaking Changes](docs/ZIG_BREAKING_CHANGES.md) --
+  full reference with error diagnostics
+- [CLAUDE.md Fragment](docs/claude-md-fragment.md) --
+  corrections appended by `/zig-init`
 
 ## License
 
-Public domain. Use however you like.
+Public domain.

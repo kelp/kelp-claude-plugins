@@ -1,86 +1,83 @@
 # tdd-pipeline
 
-Language-agnostic TDD pipeline for Claude Code with
-test-first agents, review loops, and verify gates.
+Claude skips tests, reviews its own work, and writes
+stubs that pass. This plugin enforces test-first
+discipline with seven agents across separate stages.
 
-## What It Does
+## How It Works
 
-Enforces a 7-stage TDD pipeline per module:
-
-```
-1. TEST WRITER    -> tests + type stubs (compile, FAIL)
-2. TEST REVIEWER  -> review tests, fix loop
-3. RED GATE       -> confirm ALL tests fail against stubs
-4. IMPLEMENTER    -> write code to pass tests (GREEN)
-5. VERIFY GATE    -> tests pass, no stubs, lint clean
-6. CODE REVIEWER  -> review implementation, fix loop
-7. INTEGRATE      -> update build files, full tests, commit
-```
-
-The main context acts as a pure dispatcher and never
-writes code directly. Each stage uses a dedicated agent
-with a specific role skill.
-
-## Installation
+Seven agents, seven stages. No single agent both writes
+and reviews code. The orchestrator -- your main Claude
+session -- dispatches agents and reads only CLAUDE.md.
 
 ```
-claude plugin add kelp/kelp-claude-plugins \
-  --plugin tdd-pipeline
+1. Test Writer    write tests + type stubs (RED)
+2. Test Reviewer  review tests, fix loop
+3. Red Gate       confirm all tests fail against stubs
+4. Implementer    write code to pass tests (GREEN)
+5. Verify Gate    tests pass, no stubs, lint clean
+6. Code Reviewer  review implementation, fix loop
+7. Integrate      update build files, full tests, commit
+```
+
+The RED gate catches a common failure: stubs that
+contain real logic. Tests against such stubs always
+pass, proving nothing. Every test must fail before
+implementation begins.
+
+## Install
+
+```bash
+/plugin marketplace add kelp/kelp-claude-plugins
+/plugin install tdd-pipeline@kelp-claude-plugins
 ```
 
 ## Setup
 
-1. Run `/tdd-init` in your project to add a
-   configuration template to CLAUDE.md
-2. Fill in the placeholder values: test commands,
-   file patterns, lint rules
+1. Run `/tdd-init` to add a configuration template to
+   your project's CLAUDE.md
+2. Fill in test commands, file patterns, and lint rules
 
-## Usage
-
-Invoke `/tdd-orchestrate` with a module name and
-behavior list:
+## Use
 
 ```
-/tdd-orchestrate
-Module: parser
-Behaviors:
-1. Parses valid input into a struct
-2. Returns error on malformed input
-3. Handles empty input gracefully
+/tdd-orchestrate parser
 ```
 
-The orchestrator drives all 7 stages automatically,
-dispatching agents for each role.
+The orchestrator reads your CLAUDE.md for project
+specifics, then drives all seven stages. If a reviewer
+rejects code three times, it escalates to you.
 
 ## Composition
 
-This plugin defines **process** (roles, rules, flow).
-Your project's CLAUDE.md defines **project specifics**
-(test commands, file patterns, lint rules). Language
-plugins inject corrections into CLAUDE.md. No coupling
-between plugins at the code level.
+This plugin defines the process. Your CLAUDE.md defines
+project specifics, and language plugins append
+corrections.
 
 Example with Zig:
-1. Install `zig-claude-kit` and run `/zig-init`
-2. Install `tdd-pipeline` and run `/tdd-init`
-3. Fill in the TDD config template
+1. Install `zig-claude-kit`, run `/zig-init`
+2. Install `tdd-pipeline`, run `/tdd-init`
+3. Fill in test commands and file patterns
 4. Run `/tdd-orchestrate` for each module
+
+CLAUDE.md is the only integration point between plugins.
 
 ## Skills
 
-| Skill | Type | Purpose |
-|-------|------|---------|
-| tdd-orchestrate | user-invocable | 7-stage pipeline entry point |
-| tdd-init | user-invocable | Add config template to CLAUDE.md |
-| test-writer | agent role | Write tests and type stubs |
-| test-reviewer | agent role | Review tests |
-| implementer | agent role | Write implementation |
-| code-reviewer | agent role | Review implementation |
-| agent-briefing | agent context | Common agent rules |
+**User-invocable:**
+- `tdd-orchestrate` -- drive the 7-stage pipeline
+- `tdd-init` -- add config template to CLAUDE.md
 
-## Documentation
+**Agent roles** (injected into sub-agent prompts):
+- `test-writer` -- write tests and type stubs
+- `test-reviewer` -- review tests for correctness
+- `implementer` -- write implementation code
+- `code-reviewer` -- review implementation
+- `agent-briefing` -- common rules for all agents
 
-- [Methodology](docs/methodology.md) -- full pipeline
-  reference with RED gate, verify gate, fix loops
+## Reference
+
+- [Methodology](docs/methodology.md) -- pipeline
+  stages, gates, fix loops
 - [CLAUDE.md Fragment](docs/claude-md-fragment.md) --
-  configuration template appended by /tdd-init
+  configuration template

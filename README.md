@@ -1,83 +1,75 @@
 # kelp-claude-plugins
 
-Claude Code plugins by kelp.
+Two plugins that make Claude Code write correct code:
+one enforces TDD, the other fixes Zig 0.15.x.
 
-## Installation
-
-Add this marketplace to Claude Code:
+## Install
 
 ```bash
 /plugin marketplace add kelp/kelp-claude-plugins
 ```
 
-## Available Plugins
+## Plugins
 
 ### zig-claude-kit
 
-Corrective context for Zig 0.15.x that fixes Claude's
-outdated training data. Covers I/O (Writergate),
-build.zig, format strings, ArrayList, BoundedArray,
-usingnamespace, signed division, tokenize, process
-args, JSON, for-loop index, and O_APPEND.
+Claude generates broken Zig 0.15.x code for 12 specific
+patterns. This plugin corrects them by appending the right
+patterns to your project's CLAUDE.md so every agent
+reads them.
 
 ```bash
 /plugin install zig-claude-kit@kelp-claude-plugins
 ```
 
-Once installed, open any Zig project. The plugin detects
-it at session start and prompts you to run `/zig-init`,
-which adds the corrections to your project's CLAUDE.md.
+Open a Zig project. The plugin detects Zig source files
+and prompts you to run `/zig-init`. From that point,
+Claude writes correct Zig.
 
-**Skills:**
-- `/zig-claude-kit:zig-patterns` -- Quick reference for
-  correct Zig 0.15.x patterns
-- `/zig-claude-kit:zig-check` -- Audit Zig files for
-  common mistakes
-- `/zig-claude-kit:zig-init` -- Add corrections to
-  project CLAUDE.md
-
-See [plugins/zig-claude-kit/](plugins/zig-claude-kit/)
-for full documentation.
+**Commands:**
+- `/zig-init` -- inject corrections into CLAUDE.md
+- `/zig-patterns` -- quick reference with code examples
+- `/zig-check` -- audit files for outdated API usage
 
 ### tdd-pipeline
 
-Language-agnostic TDD pipeline with test-first agents,
-review loops, and verify gates. Enforces a 7-stage
-pipeline: write tests, review, red gate, implement,
-verify, review code, integrate.
+Claude skips tests, writes stubs, and reviews its own
+work. This plugin stops that. It splits every module
+into seven stages across separate agents -- no single
+agent both writes and reviews code.
 
 ```bash
 /plugin install tdd-pipeline@kelp-claude-plugins
 ```
 
-Run `/tdd-init` in your project to add a configuration
-template to CLAUDE.md. Then invoke `/tdd-orchestrate`
-with a module name to drive the full pipeline.
+Run `/tdd-init` to configure your project, then
+`/tdd-orchestrate parser` to build a module.
 
-**Skills:**
-- `/tdd-pipeline:tdd-orchestrate` -- Run the 7-stage
-  TDD pipeline for a module
-- `/tdd-pipeline:tdd-init` -- Add pipeline config
-  template to project CLAUDE.md
+**The pipeline:**
 
-Composes with language plugins like zig-claude-kit.
-CLAUDE.md is the integration point -- no coupling
-between plugins at the code level.
+```
+1. Test Writer    write tests + type stubs (RED)
+2. Test Reviewer  review tests, fix loop
+3. Red Gate       confirm all tests fail against stubs
+4. Implementer    write code to pass tests (GREEN)
+5. Verify Gate    tests pass, no stubs, lint clean
+6. Code Reviewer  review implementation, fix loop
+7. Integrate      update build files, full tests, commit
+```
 
-See [plugins/tdd-pipeline/](plugins/tdd-pipeline/)
-for full documentation.
+The orchestrator -- your main Claude session --
+dispatches agents and never writes code. Each agent receives a role skill that constrains
+what it can touch. Language-specific context comes from
+CLAUDE.md, not the plugin -- so the pipeline works with
+any language.
 
-## Versioning
+## Composition
 
-Plugins use semver. Versions are set in each plugin's
-`plugin.json` only -- not in `marketplace.json`.
-Claude Code uses the version for cache invalidation;
-bumping it is required for users to see changes.
+CLAUDE.md connects these plugins:
 
-Both plugins currently use 0.x versions (pre-stable).
-Earlier zig-claude-kit releases used 1.x versions
-in error; reset to 0.2.0 to follow semver correctly.
+1. `zig-claude-kit` appends language corrections
+2. `tdd-pipeline` reads test commands and file patterns
 
 ## License
 
-Public domain. Use however you like.
+Public domain.
