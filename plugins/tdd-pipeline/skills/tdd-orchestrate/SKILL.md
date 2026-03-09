@@ -1,9 +1,14 @@
 ---
 name: tdd-orchestrate
 description: >
-  Main entry point for the TDD pipeline. Drives the
-  7-stage pipeline: write tests, review, red gate,
-  implement, verify, review code, integrate.
+  Run the TDD pipeline for a module. Use when asked to
+  "use TDD", "red green TDD", "run the pipeline",
+  "TDD pipeline", "build a module with TDD", or
+  "orchestrate".
+  Dispatches 7 agents
+  across separate stages: test writer, test reviewer,
+  red gate, implementer, verify gate, code reviewer,
+  integrate.
 user-invocable: true
 ---
 
