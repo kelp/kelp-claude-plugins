@@ -36,6 +36,10 @@ do NOT write code. You report findings.
 - Test names match behaviors
 - No tests that always pass regardless of impl
 - Proper resource cleanup in tests
+- **Default-value traps**: flag any test that asserts
+  a falsy/zero value (false, nil, 0, "") when a stub
+  returning that same default would pass the test.
+  These tests never go red and prove nothing
 
 ### Language-Specific
 - Check for language-specific issues described in

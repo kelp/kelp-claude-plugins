@@ -52,6 +52,16 @@ RED gate confirms every test will only pass when real
 logic exists. Without it, you get false confidence --
 tests that always pass regardless of implementation.
 
+**Default-value trap**: a common failure mode is tests
+that assert falsy values (false, nil, 0, "") against
+stubs that return those same values by default. These
+tests pass immediately and the RED gate cannot catch
+them because the test "fails" for zero tests -- it
+just silently passes. The test-writer and test-reviewer
+stages must prevent this upstream by choosing inputs
+that require non-default return values or by testing
+for truthy/non-zero results.
+
 ## Skills Reference
 
 Each pipeline stage has a corresponding skill:

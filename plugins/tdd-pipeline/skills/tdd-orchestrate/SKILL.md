@@ -63,6 +63,16 @@ Run the test. It must fail. If it passes, either the
 feature already exists or your test doesn't exercise
 what you think it does. Investigate before proceeding.
 
+**Watch for default-value traps.** If you're testing
+that a function returns false, nil, 0, or an empty
+string, and the stub already returns that value by
+default, your test passes immediately — you never see
+red. Fix this by either: (a) choosing inputs that
+should produce a non-default value, or (b) making the
+stub return an intentionally wrong value (e.g., a
+sentinel or the opposite of what you expect). A test
+that never fails against a stub proves nothing.
+
 **The test must fail for the RIGHT reason.** A compile
 error or import failure is not a valid red state — fix
 those first so the test runs and fails on the assertion.
@@ -112,6 +122,14 @@ test catches regressions.
 **Don't get stuck planning.** The plan is: write a
 failing test. If you've spent more than 2 minutes
 without creating or editing a test file, you're stalling.
+
+**Don't assert default values against stubs.** If your
+test checks that a function returns false and the stub
+returns false by default, the test passes without any
+implementation. Either test for a truthy/non-default
+value, use inputs that force a non-default result, or
+make the stub return a deliberately wrong value so the
+test fails until real logic exists.
 
 **Don't test the wrong file descriptor.** When testing
 TTY behavior, verify which fd (stdin, stdout, stderr)

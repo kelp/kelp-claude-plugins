@@ -48,6 +48,12 @@ A complete test file that:
 - Test boundary values, not just happy paths
 - No tests that always pass regardless of
   implementation
+- **Avoid default-value traps**: if a test asserts a
+  falsy or zero value (false, nil, 0, ""), and the
+  stub returns that same value by default, the test
+  passes immediately and never goes red. Choose inputs
+  that require a non-default return value, or test for
+  a truthy/non-zero result instead
 
 ## Type Stubs
 
