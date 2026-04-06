@@ -32,6 +32,11 @@ Accepted scope forms:
 Flags:
 - `--quick`: skip cross-validation; merge findings
   from both models without checking each other's work.
+- `--reconcile`: after cross-validation, ask each
+  model to reconsider its disputed findings in light
+  of the validator's reasoning. Incompatible with
+  `--quick`. Adds one round of reconciliation per
+  disputed finding.
 
 ## The Rule
 
@@ -294,6 +299,47 @@ Code context:
 Collect both validation outputs and parse STATUS
 fields for each finding.
 
+### Step 4b: Reconciliation
+
+Skip unless `--reconcile` flag is set. Requires
+Step 4 to have run (incompatible with `--quick`).
+
+For each finding with STATUS: DISPUTED, send the
+original finding plus the validator's NOTES back to
+the model that produced the finding. Use this prompt:
+
+"Your finding was disputed by another reviewer:
+
+<original finding in schema format>
+
+Dispute reasoning:
+<validator's NOTES>
+
+Based on this dispute, do you:
+(A) CONCEDE — the dispute is correct, withdraw
+    the finding
+(B) MAINTAIN — the finding stands, here is
+    additional evidence: <explain>
+
+Respond with CONCEDE or MAINTAIN and your reasoning."
+
+**For Claude findings disputed by Codex:** dispatch
+a general-purpose agent with the above prompt and
+the packaged code context.
+
+**For Codex findings disputed by Claude:** shell out
+to codex `task --wait` with the above prompt and
+the packaged code context.
+
+Run all reconciliations in parallel.
+
+**Processing results:**
+- CONCEDE: remove the finding from the disputed list
+- MAINTAIN: keep the finding in disputed, append the
+  rebuttal reasoning alongside the original dispute
+
+Max one round. No back-and-forth debate.
+
 ### Step 5: Merge and Output
 
 Collect all findings and validation statuses. Choose
@@ -366,6 +412,11 @@ DETAIL: <explanation>
 RECOMMENDATION: <fix>
 STATUS: DISPUTED
 DISPUTE: <validator's NOTES explaining what is wrong>
+REBUTTAL: <originator's response, if --reconcile was
+          used and they chose MAINTAIN>
+
+Note: if --reconcile was used, findings where the
+originator conceded are removed from this list.
 
 ### Uncertain Findings
 

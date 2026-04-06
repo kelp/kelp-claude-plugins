@@ -106,6 +106,30 @@ Run in parallel:
   normalized findings and the code. Codex checks
   each finding with the same verdicts.
 
+### Step 4b: Reconciliation (optional)
+
+Skip unless `--reconcile` flag is set. Requires
+Step 4 (cross-validation) to have run — incompatible
+with `--quick`.
+
+For each DISPUTED finding, send the original finding
+plus the validator's dispute NOTES back to the model
+that produced the finding. Ask: "The validator
+disputed your finding with this reasoning. Do you
+concede or maintain your position? If you maintain,
+provide additional evidence from the code."
+
+- If the originating model concedes, drop the finding
+  from the disputed list entirely.
+- If the originating model maintains with new
+  evidence, keep it in the disputed list with both
+  the original dispute and the rebuttal.
+
+Run reconciliations in parallel (one per disputed
+finding per model). Max one round — no back-and-forth
+debate. The goal is to resolve clear factual errors,
+not to argue indefinitely.
+
 ### Step 5: Merge and Output
 
 **Fix list** (for implementing models and humans):
