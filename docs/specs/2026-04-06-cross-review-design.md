@@ -45,7 +45,7 @@ plugins/cross-review/
 
 ## Pipeline
 
-### Step 1: Determine Scope
+### Step 1: Determine Scope and Package Context
 
 Parse user arguments to build the review target.
 
@@ -56,15 +56,21 @@ Parse user arguments to build the review target.
   translates to the appropriate git diff or file list.
 - Read `codex-script` path from project CLAUDE.md.
 
+**Context packaging:** The orchestrator reads the
+relevant files and diffs once, then inlines the
+code slices directly in the prompts sent to both
+reviewers. This is a default, not a hard rule —
+agents can still read additional files if the
+provided context is insufficient. The goal is to
+avoid redundant file reads, not to restrict the
+reviewer's ability to investigate.
+
 ### Step 2: Claude Review
 
 Dispatch a **reviewer** agent (`subagent_type:
-reviewer`) with the diff/files and the reviewer role
-prompt. The agent returns findings as a numbered
-markdown list. Each finding includes: file path, line
-range, description, why it's vulnerable, impact, and
-recommendation. Prose, not JSON — optimized for
-readability by both humans and models.
+reviewer`) with the packaged context and the
+reviewer role prompt. The agent returns findings
+in the shared finding schema (see below).
 
 ### Step 3: Codex Review
 
@@ -74,23 +80,31 @@ Shell out to the codex companion script:
 node <codex-script-path> task --wait "<prompt>"
 ```
 
-The prompt includes the same diff/files and asks for
-findings in the same structure. Uses `task` (not
-`adversarial-review`) because `task` can review
-arbitrary code, while `adversarial-review` only reviews
-working-tree diffs.
+The prompt includes the same packaged context and
+asks for findings in the same schema. Uses `task`
+(not `adversarial-review`) because `task` can review
+arbitrary code, while `adversarial-review` only
+reviews working-tree diffs.
 
 ### Step 4: Cross-Validation
 
 Skip if `--quick` flag is set.
 
+**Normalize before cross-injection.** The orchestrator
+parses both models' findings into finding-schema
+objects before handing them to the other model. Raw
+prose output from one model is never injected into
+the other's prompt. Each validator sees only the
+structured finding list and the referenced code.
+
 Run in parallel:
-- Dispatch a **validator** agent with Codex's findings
-  and the code. Claude checks each finding: CONFIRMED,
-  DISPUTED (with explanation), or UNCERTAIN.
+- Dispatch a **validator** agent with Codex's
+  normalized findings and the code. Claude checks
+  each finding: CONFIRMED, DISPUTED (with
+  explanation), or UNCERTAIN.
 - Shell out to codex `task --wait` with Claude's
-  findings and the code. Codex checks each finding
-  with the same verdicts.
+  normalized findings and the code. Codex checks
+  each finding with the same verdicts.
 
 ### Step 5: Merge and Output
 
@@ -99,19 +113,52 @@ Run in parallel:
   initial reviews.
 - Findings unique to one model but CONFIRMED during
   cross-validation.
-- Flat prioritized list. Each entry: file, lines,
-  what's wrong, what to do. No debate history, no
-  confidence scores.
+- Flat prioritized list. Each entry uses the finding
+  schema. No debate history.
 
 **Disputed findings** (for humans only):
 - Findings that received a DISPUTED verdict during
   cross-validation.
 - Labeled: "Unverified — human review needed."
-- Includes both the finding and the dispute reasoning.
+- Includes both the finding and the validator's
+  dispute reasoning.
 
 **`--quick` mode:**
 - Union of all findings from both models.
 - No validation status. No disputed section.
+
+## Finding Schema
+
+Both models output findings in this structure.
+The orchestrator uses it for dedup, cross-validation,
+and merge.
+
+```
+FINDING: <sequential id>
+FILE: <path>
+LINES: <start>-<end>
+SEVERITY: <high|medium|low>
+CATEGORY: <trust-boundary|resource-leak|race-condition|
+           input-validation|error-handling|state-corruption|
+           other>
+ISSUE: <one-line summary>
+DETAIL: <explanation — natural language, as long as
+         needed to make the case>
+RECOMMENDATION: <concrete fix>
+```
+
+During cross-validation, the validator appends:
+
+```
+STATUS: <CONFIRMED|DISPUTED|UNCERTAIN>
+NOTES: <reasoning — required if DISPUTED>
+```
+
+This is not a wire protocol. It is a shared template
+that makes parsing mechanical while keeping the
+substance in natural language. The DETAIL and NOTES
+fields carry the reasoning that makes cross-validation
+work — they must not be compressed or eliminated.
 
 ## Role Prompts
 
@@ -126,21 +173,21 @@ that are expensive, dangerous, or hard to detect:
 - Buffer handling and input validation
 - Error handling gaps and silent failures
 
-Each finding must include file, lines, what can go
-wrong, why it's vulnerable, impact, and a concrete
-recommendation. No style feedback, no naming feedback,
-no speculative concerns without evidence.
+Output uses the finding schema. Each finding must
+fill every field. No style feedback, no naming
+feedback, no speculative concerns without evidence.
 
 ~50 lines.
 
 ### validator
 
-Takes a list of findings from the other model and the
+Takes a normalized list of findings (in finding
+schema format) from the other model and the
 referenced code. For each finding:
 
 1. Read the actual code at the referenced lines.
 2. Verify the claim matches what the code does.
-3. State CONFIRMED, DISPUTED, or UNCERTAIN.
+3. Append STATUS and NOTES fields.
 4. If DISPUTED, explain what the finding got wrong.
 
 Key instruction: "Do not confirm out of politeness.
@@ -218,6 +265,38 @@ overstated vulnerability claims. The models had
 complementary perspectives — Claude found internal
 correctness issues, Codex found trust-boundary and
 input-validation issues.
+
+## Evaluated and Dropped
+
+A "multi-agent fire mode" proposal was evaluated
+by both Claude and Codex. Three ideas were adopted
+(context packaging, finding schema, normalized
+cross-injection). The following were dropped:
+
+- **Wire protocol with typed verbs.** Cross-review
+  has ~3 data types, not 7 verbs. The protocol adds
+  ceremony without value at this scale.
+- **"Never natural language" rule.** Findings need
+  natural-language claims and reasoning. Reviews are
+  judgments, not patches. The DETAIL and NOTES fields
+  exist because compression destroys the reasoning
+  that makes cross-validation work.
+- **AST-aware context as a hard rule.** Review
+  failures often live in config, tests, and type
+  definitions that AST slicing misses. Context
+  packaging uses targeted slices as a default, not
+  an invariant.
+- **"No re-reads" as invariant.** Cross-validation
+  works partly because the second model independently
+  verifies evidence. Forbidding reads risks
+  coordinator bias.
+- **<100 token system prompts.** Review calibration
+  needs real instructions about what constitutes a
+  material finding.
+- **Token minimalism as a design goal.** Precision
+  is the scarce resource, not tokens. Saving 20%
+  tokens while increasing false positives is a net
+  loss.
 
 ## Open Questions
 
