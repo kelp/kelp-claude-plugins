@@ -266,38 +266,6 @@ complementary perspectives — Claude found internal
 correctness issues, Codex found trust-boundary and
 input-validation issues.
 
-## Evaluated and Dropped
-
-A "multi-agent fire mode" proposal was evaluated
-by both Claude and Codex. Three ideas were adopted
-(context packaging, finding schema, normalized
-cross-injection). The following were dropped:
-
-- **Wire protocol with typed verbs.** Cross-review
-  has ~3 data types, not 7 verbs. The protocol adds
-  ceremony without value at this scale.
-- **"Never natural language" rule.** Findings need
-  natural-language claims and reasoning. Reviews are
-  judgments, not patches. The DETAIL and NOTES fields
-  exist because compression destroys the reasoning
-  that makes cross-validation work.
-- **AST-aware context as a hard rule.** Review
-  failures often live in config, tests, and type
-  definitions that AST slicing misses. Context
-  packaging uses targeted slices as a default, not
-  an invariant.
-- **"No re-reads" as invariant.** Cross-validation
-  works partly because the second model independently
-  verifies evidence. Forbidding reads risks
-  coordinator bias.
-- **<100 token system prompts.** Review calibration
-  needs real instructions about what constitutes a
-  material finding.
-- **Token minimalism as a design goal.** Precision
-  is the scarce resource, not tokens. Saving 20%
-  tokens while increasing false positives is a net
-  loss.
-
 ## Open Questions
 
 None. All design decisions resolved during
