@@ -79,10 +79,14 @@ Parse `$ARGUMENTS`:
 - Translate freeform scope to git commands or file
   paths as needed.
 
-Read project CLAUDE.md for configuration:
-- `codex-script:` — absolute path to the codex
-  companion script. If missing or unreadable, proceed
-  in claude-only mode (see Output Formats).
+Read the project's root CLAUDE.md for configuration.
+Look for lines starting with these keys — the value
+is everything after the colon, trimmed:
+
+- `codex-script:` — path to the codex companion
+  script. Expand `$HOME` to the user's home directory
+  before use. If missing or unreadable, proceed in
+  claude-only mode (see Output Formats).
 - `review-focus:` — optional project-specific review
   priorities. If present, prepend these to the review
   focus in both Claude and Codex prompts.
@@ -313,6 +317,13 @@ detail; note that both models flagged it.
   cross-validation
 - Include the dispute NOTES inline
 
+**Uncertain entries:**
+- Findings that received an UNCERTAIN verdict during
+  cross-validation
+- Include in the output for human triage — these are
+  plausible issues the validator could not confirm
+  or deny from available context
+
 ## Output Formats
 
 ### Full Mode (default)
@@ -355,6 +366,23 @@ DETAIL: <explanation>
 RECOMMENDATION: <fix>
 STATUS: DISPUTED
 DISPUTE: <validator's NOTES explaining what is wrong>
+
+### Uncertain Findings
+
+Could not verify — human triage needed.
+
+<For each uncertain finding:>
+
+FINDING: <id>
+FILE: <path>
+LINES: <range>
+SEVERITY: <level>
+CATEGORY: <category>
+ISSUE: <summary>
+DETAIL: <explanation>
+RECOMMENDATION: <fix>
+STATUS: UNCERTAIN
+NOTES: <what additional context would resolve this>
 ```
 
 ### Quick Mode (`--quick`)
