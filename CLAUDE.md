@@ -5,12 +5,14 @@ when working with code in this repository.
 
 ## What This Repo Is
 
-A Claude Code plugin marketplace containing two plugins:
+A Claude Code plugin marketplace containing three plugins:
 
 - **zig-claude-kit** -- corrective context for Zig 0.15.x
   that fixes Claude's outdated training data
 - **tdd-pipeline** -- language-agnostic TDD pipeline with
   seven agents across separate stages
+- **cross-review** -- multi-model code review with
+  cross-validation using Claude and GPT-5.4
 
 Users install via `/plugin marketplace add kelp/kelp-claude-plugins`,
 then `/plugin install <name>@kelp-claude-plugins`.
@@ -30,6 +32,10 @@ plugins/
     .claude-plugin/plugin.json     # manifest (version here)
     skills/                        # orchestrator, agent roles, tdd-init
     docs/                          # fragment, methodology ref
+  cross-review/
+    .claude-plugin/plugin.json     # manifest (version here)
+    skills/                        # orchestrator, reviewer, validator
+    docs/                          # fragment
 ```
 
 ## Key Conventions
@@ -49,7 +55,7 @@ Version lives only in each plugin's
 NOT contain version fields -- Claude Code silently
 overrides them from plugin.json anyway.
 
-Both plugins use 0.x semver (pre-stable).
+All plugins use 0.x semver (pre-stable).
 
 ### SKILL.md Format
 
