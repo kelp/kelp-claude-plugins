@@ -83,6 +83,9 @@ Read project CLAUDE.md for configuration:
 - `codex-script:` — absolute path to the codex
   companion script. If missing or unreadable, proceed
   in claude-only mode (see Output Formats).
+- `review-focus:` — optional project-specific review
+  priorities. If present, prepend these to the review
+  focus in both Claude and Codex prompts.
 
 Package context: read the relevant files and diffs
 once. Inline the code slices in every prompt you
@@ -100,6 +103,8 @@ Dispatch a **reviewer** agent (`subagent_type:
 reviewer`) with:
 - The reviewer skill content (verbatim)
 - The packaged code context (files and diffs)
+- Project-specific review-focus from CLAUDE.md
+  (if configured)
 - Instruction to return findings in the finding schema
 
 Collect the agent's output. If the agent returns
@@ -135,6 +140,10 @@ or hard to detect. Do NOT report style, naming, or
 speculative concerns.
 
 Review focus — prioritize:
+
+<IF review-focus IS CONFIGURED, INSERT IT HERE>
+
+Additionally, always check:
 - Trust boundaries: auth, permissions, tenant
   isolation, input from untrusted sources
 - Resource management: leaks, cleanup failures,
