@@ -20,6 +20,12 @@
       "source": "./plugins/tdd-pipeline",
       "description": "Language-agnostic TDD pipeline with test-first agents, review loops, and verify gates.",
       "strict": false
+    },
+    {
+      "name": "cross-review",
+      "source": "./plugins/cross-review",
+      "description": "Multi-model code review with cross-validation. Orchestrates Claude and GPT-5.4 reviews, validates findings against each other, outputs merged fix list.",
+      "strict": false
     }
   ]
 }
