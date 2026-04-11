@@ -1,0 +1,10 @@
+{
+  "name": "knowledge-forge",
+  "description": "Cross-session routing and capture for a three-layer personal knowledge base. Auto-discovered skill teaches the index-first retrieval policy. /kb-capture files notes into the right wiki bucket with correct frontmatter.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Travis Cole"
+  },
+  "homepage": "https://github.com/kelp/kelp-claude-plugins",
+  "repository": "https://github.com/kelp/kelp-claude-plugins"
+}

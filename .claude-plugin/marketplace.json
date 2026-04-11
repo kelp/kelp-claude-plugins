@@ -26,6 +26,12 @@
       "source": "./plugins/cross-review",
       "description": "Multi-model code review with cross-validation. Orchestrates Claude and GPT-5.4 reviews, validates findings against each other, outputs merged fix list.",
       "strict": false
+    },
+    {
+      "name": "knowledge-forge",
+      "source": "./plugins/knowledge-forge",
+      "description": "Cross-session routing and capture for a three-layer personal knowledge base. Auto-discovered skill teaches index-first retrieval. /kb-capture files notes into the right wiki bucket with correct frontmatter.",
+      "strict": false
     }
   ]
 }
