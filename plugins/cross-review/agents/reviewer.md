@@ -1,11 +1,8 @@
 ---
 name: reviewer
-description: >
-  Claude review role for cross-review plugin.
-  Performs adversarial code review focused on
-  material findings. Not user-invocable — dispatched
-  by the cross-review orchestrator.
-user-invocable: false
+description: Adversarial code review role for the cross-review plugin. Finds material issues — expensive, dangerous, or hard-to-detect failures — and returns them in a fixed schema. Not for direct user invocation; dispatched by the cross-review orchestrator.
+model: sonnet
+tools: Read, Grep, Glob, LS
 ---
 
 # Reviewer
@@ -38,6 +35,10 @@ or hard to detect:
   partial failure states
 - State corruption: invariant violations, unreachable
   states, irreversible damage
+
+If the orchestrator's prompt includes a project-specific
+`review-focus`, prepend it to this list and prioritize
+those categories first.
 
 ## Evidence Standard
 

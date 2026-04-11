@@ -90,11 +90,26 @@ is everything after the colon, trimmed:
 
 - `codex-script:` — path to the codex companion
   script. Expand `$HOME` to the user's home directory
-  before use. If missing or unreadable, proceed in
-  claude-only mode (see Output Formats).
+  before use.
 - `review-focus:` — optional project-specific review
   priorities. If present, prepend these to the review
   focus in both Claude and Codex prompts.
+
+**Resolving the codex script path:**
+
+1. If `codex-script:` is present in CLAUDE.md, expand
+   `$HOME` and check that the file exists and is
+   readable. If so, use it.
+2. Otherwise, try the documented default path:
+   `$HOME/.claude/plugins/marketplaces/openai-codex/plugins/codex/scripts/codex-companion.mjs`
+   Check the same way. If it exists and is readable,
+   use it.
+3. If neither works, proceed in claude-only mode (see
+   Output Formats).
+
+Never fall back silently when a configured path exists
+but is unreadable — that may mask a misconfiguration.
+Warn the user, then try the default, then claude-only.
 
 Package context: read the relevant files and diffs
 once. Inline the code slices in every prompt you
@@ -105,16 +120,18 @@ not to restrict investigation.
 
 ### Step 2: Claude Review
 
-Read the reviewer role skill verbatim:
-`${CLAUDE_PLUGIN_ROOT}/skills/reviewer/SKILL.md`
-
-Dispatch a **reviewer** agent (`subagent_type:
-reviewer`) with:
-- The reviewer skill content (verbatim)
+Dispatch the plugin's reviewer agent
+(`subagent_type: cross-review:reviewer`) with:
 - The packaged code context (files and diffs)
 - Project-specific review-focus from CLAUDE.md
-  (if configured)
+  (if configured) — include it in the prompt so the
+  agent can prepend it to its default focus list
 - Instruction to return findings in the finding schema
+
+The reviewer agent's system prompt already contains
+the review focus, evidence standard, and output
+schema. Do not re-inject those — pass only the code
+context and any project-specific focus.
 
 Collect the agent's output. If the agent returns
 `NO_FINDINGS`, record an empty finding list for
@@ -214,16 +231,17 @@ Run both validations in parallel:
 
 **Claude validates codex findings:**
 
-Read the validator role skill verbatim:
-`${CLAUDE_PLUGIN_ROOT}/skills/validator/SKILL.md`
-
-Dispatch a **validator** agent (`subagent_type:
-reviewer`) with:
-- The validator skill content (verbatim)
+Dispatch the plugin's validator agent
+(`subagent_type: cross-review:validator`) with:
 - Codex's normalized findings (structured list)
 - The packaged code context
 - Instruction to append STATUS and NOTES to each
   finding
+
+The validator agent's system prompt already contains
+the validation rules, process, and output schema.
+Do not re-inject those — pass only the findings and
+code context.
 
 **Codex validates Claude findings:**
 
@@ -472,8 +490,9 @@ path not configured, or script exits non-zero).
 ## Cross-Review Results (Claude Only)
 
 WARNING: Codex unavailable — findings are not
-cross-validated. Configure codex-script in
-CLAUDE.md to enable multi-model review.
+cross-validated. Install the `codex` plugin from
+the openai-codex marketplace, or set `codex-script:`
+in CLAUDE.md to enable multi-model review.
 
 Scope: <scope description>
 Claude findings: <n>

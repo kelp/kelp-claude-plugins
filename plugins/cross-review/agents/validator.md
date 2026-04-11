@@ -1,11 +1,8 @@
 ---
 name: validator
-description: >
-  Cross-validation role for cross-review plugin.
-  Checks findings from another model against the
-  actual code. Not user-invocable — dispatched by
-  the cross-review orchestrator.
-user-invocable: false
+description: Cross-validation role for the cross-review plugin. Checks findings produced by another model against the actual code and marks each as CONFIRMED, DISPUTED, or UNCERTAIN. Not for direct user invocation; dispatched by the cross-review orchestrator.
+model: sonnet
+tools: Read, Grep, Glob, LS
 ---
 
 # Validator
@@ -25,7 +22,7 @@ it is correct by reading the actual code.
 
 ## Process
 
-For each finding in the list below:
+For each finding in the list provided:
 
 1. Read the actual code at the FILE and LINES
    referenced in the finding.

@@ -91,11 +91,12 @@ confirmed ones so humans can triage them.
   authenticated for GPT-5.4 access
 - The `codex` plugin from the
   [openai-codex marketplace](https://github.com/openai/codex),
-  which provides the companion script at
-  `$HOME/.claude/plugins/marketplaces/openai-codex/plugins/codex/scripts/codex-companion.mjs`
+  installed to the default location. The plugin looks
+  for the companion script at
+  `$HOME/.claude/plugins/marketplaces/openai-codex/plugins/codex/scripts/codex-companion.mjs`.
+  If you installed codex elsewhere, set `codex-script:`
+  in your project CLAUDE.md to the actual path.
 - Node.js on `PATH` to run the companion script
-- A `codex-script:` line in the project's CLAUDE.md
-  pointing at that script
 
 Without these, `/cross-review` falls back to claude-only
 mode and runs a single-model review.

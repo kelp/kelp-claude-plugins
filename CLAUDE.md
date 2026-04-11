@@ -34,7 +34,8 @@ plugins/
     docs/                          # fragment, methodology ref
   cross-review/
     .claude-plugin/plugin.json     # manifest (version here)
-    skills/                        # orchestrator, reviewer, validator
+    skills/cross-review/           # orchestrator skill
+    agents/                        # reviewer, validator
     docs/                          # fragment
 ```
 
