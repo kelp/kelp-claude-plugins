@@ -139,23 +139,56 @@ Node script on disk.
    STOP per step 1 above, not a fallback.
 
 **Package context.** Read the relevant files and
-diffs once. How you package them depends on total
-size:
+diffs once. Decide what to inline BEFORE measuring,
+then measure exactly what you will inline. The
+measurement and the packaged payload must always
+match — otherwise the size guard protects nothing.
 
-1. **Estimate scope size.** Sum the byte count of
-   all files to be reviewed (or the diff output for
-   git-range scopes). Use `wc -c` or stat sizes.
-2. **If total size ≤ 300 KB** (roughly 100K tokens,
-   a safe fraction of Codex's 250K context window):
-   inline the FULL contents of each file directly in
-   every prompt you send to reviewers and validators.
-   This saves the subagents from re-reading the same
-   files and cuts roughly 5-10 seconds per dispatch,
-   which matters across four model calls.
-3. **If total size > 300 KB:** fall back to passing
-   only the file list (paths + short summaries) and
-   let the agents read what they need. Inlining
-   would risk context overflow in Codex.
+1. **Choose the payload based on scope shape:**
+   - **File-path scope** (e.g., `src/parser.zig`,
+     a list of files): the payload is the FULL
+     contents of those files.
+   - **Git-range scope** (e.g., `last 2 commits`,
+     `HEAD~3..HEAD`, `git diff HEAD`): the payload
+     is the DIFF output — that is what the user
+     asked for, the changes in those commits, not
+     the entire files that happen to be touched.
+     If a reviewer needs surrounding context, it
+     can read the file from disk on its own.
+   - **Freeform scope**: pick the form that matches
+     user intent. If the user said "the changes"
+     or "last N commits", use a diff; if they named
+     specific files, use full contents.
+
+2. **Measure the chosen payload, not something else.**
+   After deciding what goes into the prompt, run
+   `wc -c` on that exact content — the concatenated
+   full files, or the diff output, whichever you
+   picked in step 1. The measurement must count the
+   same bytes the orchestrator is about to inline.
+
+3. **If the measured payload ≤ 250 KB** (roughly
+   80K tokens of source content; plus fixed prompt
+   overhead of ~5-10K tokens for the template,
+   schema, focus text, and framing, the total
+   prompt stays well under Codex's 250K context
+   window): inline the payload directly in every
+   prompt you send to reviewers and validators.
+   This saves subagents from re-reading the same
+   content and cuts roughly 5-10 seconds per
+   dispatch across four model calls.
+
+4. **If the measured payload > 250 KB:** fall back
+   to passing file paths (and a brief summary of
+   what changed) and let agents read what they need.
+   Inlining would risk overflowing Codex's context
+   window once prompt overhead is added.
+
+The 250 KB threshold is deliberately conservative:
+it leaves headroom for the fixed prompt overhead
+(template text, schema, focus categories, stage
+framing) that sits around the inlined content. Do
+not raise it without accounting for that overhead.
 
 Agents may still read additional files if they need
 context beyond what was inlined — the goal is to
@@ -165,7 +198,7 @@ large.
 
 Typical cross-review scopes are small (one commit,
 one file, a handful of files) and fall well under
-the 300 KB threshold. The inline path will be the
+the 250 KB threshold. The inline path will be the
 norm; the fallback path exists for release audits
 and large refactors.
 
@@ -652,9 +685,11 @@ path not configured, or script exits non-zero).
 ## Cross-Review Results (Claude Only)
 
 WARNING: Codex unavailable — findings are not
-cross-validated. Install the `codex` plugin from
-the openai-codex marketplace, or set `codex-script:`
-in CLAUDE.md to enable multi-model review.
+cross-validated. Install `codex-plugin-cc` from
+the `openai-codex` marketplace
+(https://github.com/openai/codex-plugin-cc), or
+set `codex-script:` in your project CLAUDE.md to
+enable multi-model review.
 
 Scope: <scope description>
 Claude findings: <n>
