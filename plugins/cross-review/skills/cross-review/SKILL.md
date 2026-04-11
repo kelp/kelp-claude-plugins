@@ -630,31 +630,72 @@ Max one round. No back-and-forth debate.
 Collect all findings and validation statuses. Choose
 the output format based on mode (see Output Formats).
 
-**Deduplication:** findings from both models that
-describe the same issue at the same location count
-as one finding. Use FILE + overlapping LINES ranges
-to identify duplicates. CATEGORY disagreement is
-NOT a reason to keep separate entries — models often
-categorize the same bug differently (e.g.,
-`input-validation` vs `trust-boundary`), and
-treating those as distinct findings would lose the
-shared-agreement signal and inflate the fix list.
+**Deduplication.** Two findings are duplicates only
+if they describe the SAME UNDERLYING BUG. Shared
+location is necessary but NOT sufficient — two
+distinct bugs can live at the same lines. Apply a
+two-step test.
 
-Line range overlap: two findings are duplicates if
-their FILE matches and their LINES ranges share at
-least one line. This catches off-by-one line number
-differences between models.
+**Step A: Location filter (necessary condition).**
+Candidates for dedup MUST share FILE and have
+overlapping LINES ranges (share at least one line).
+Findings that don't overlap are always distinct.
+Line overlap catches the off-by-one case where
+models reference nearby line numbers for the same
+bug.
 
-When merging duplicates:
-- Keep the finding with more DETAIL; the shorter one
-  is usually a subset.
-- If CATEGORY disagrees, record both in a `CATEGORIES`
-  metadata field on the merged finding (e.g.,
+**Step B: Semantic judgment (sufficient condition).**
+Among location candidates, compare the ISSUE and
+DETAIL fields. Two findings are the SAME underlying
+bug if they explain the same failure mechanism or
+root cause — even if they categorize or phrase it
+differently. Two findings are DIFFERENT bugs if
+they explain distinct mechanisms, distinct failure
+modes, or require distinct fixes — even if they
+happen to point at the same line range.
+
+Examples:
+
+- **Same bug, different framing (MERGE):** Claude
+  says "input-validation: unbounded loop counter
+  leads to integer overflow" and Codex says
+  "state-corruption: counter wraps past INT_MAX in
+  the same loop." Both describe the counter
+  overflow. Different CATEGORY, same mechanism —
+  merge.
+
+- **Same location, different bugs (DO NOT MERGE):**
+  Claude says "size threshold ignores prompt
+  overhead" and Codex says "size gate measures diff
+  but packages files." Both point at the same line
+  range. The first is about a wrong numeric
+  threshold; the second is about what gets measured
+  vs. packaged. Two distinct fixes — keep separate.
+
+**Default on uncertainty: DO NOT merge.** If you
+cannot confidently say two findings describe the
+same underlying bug, keep them separate. The cost
+of a mildly inflated fix list is small. The cost
+of merging distinct findings is lost signal — one
+concern gets buried under the other.
+
+**When merging confirmed duplicates:**
+- Keep the finding with more DETAIL; fold in any
+  unique information from the shorter one.
+- If CATEGORY disagrees, record both in a
+  `CATEGORIES` metadata field (e.g.,
   `CATEGORIES: trust-boundary (codex),
-  input-validation (claude)`) so the disagreement is
-  visible without blocking deduplication.
-- Mark the merged finding as `CONFIRMED_BY: both` in
-  the output.
+  input-validation (claude)`) so the disagreement
+  is visible.
+- Mark the merged finding as `CONFIRMED_BY: both`.
+
+**When keeping related-but-distinct findings:**
+- List both in the fix list independently.
+- Add a `RELATED_TO: <finding id>` field on each
+  so the human reader understands the locations
+  overlap but the findings are distinct concerns.
+- This keeps the signal without losing the
+  relationship.
 
 **Fix list entries** (full and quick modes):
 - Findings confirmed by both models in their initial
@@ -700,6 +741,10 @@ ISSUE: <summary>
 DETAIL: <explanation>
 RECOMMENDATION: <fix>
 CONFIRMED_BY: <claude|codex|both>
+RELATED_TO: <finding id, optional — only if this
+             finding overlaps in location with another
+             finding but was kept separate because
+             they describe distinct bugs>
 
 ### Disputed Findings
 
@@ -766,6 +811,8 @@ ISSUE: <summary>
 DETAIL: <explanation>
 RECOMMENDATION: <fix>
 SOURCE: <claude|codex|both>
+RELATED_TO: <finding id, optional — same meaning
+             as in Full Mode>
 ```
 
 ### Claude-Only Mode
