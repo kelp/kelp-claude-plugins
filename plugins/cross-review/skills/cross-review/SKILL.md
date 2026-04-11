@@ -138,12 +138,36 @@ Node script on disk.
    cases. A configured-but-rejected path is a HARD
    STOP per step 1 above, not a fallback.
 
-Package context: read the relevant files and diffs
-once. Inline the code slices in every prompt you
-send to reviewers and validators. Agents may still
-read additional files if the provided context is
-insufficient — the goal is to avoid redundant reads,
-not to restrict investigation.
+**Package context.** Read the relevant files and
+diffs once. How you package them depends on total
+size:
+
+1. **Estimate scope size.** Sum the byte count of
+   all files to be reviewed (or the diff output for
+   git-range scopes). Use `wc -c` or stat sizes.
+2. **If total size ≤ 300 KB** (roughly 100K tokens,
+   a safe fraction of Codex's 250K context window):
+   inline the FULL contents of each file directly in
+   every prompt you send to reviewers and validators.
+   This saves the subagents from re-reading the same
+   files and cuts roughly 5-10 seconds per dispatch,
+   which matters across four model calls.
+3. **If total size > 300 KB:** fall back to passing
+   only the file list (paths + short summaries) and
+   let the agents read what they need. Inlining
+   would risk context overflow in Codex.
+
+Agents may still read additional files if they need
+context beyond what was inlined — the goal is to
+eliminate redundant reads in the common (small-scope)
+case, not to restrict investigation when scope is
+large.
+
+Typical cross-review scopes are small (one commit,
+one file, a handful of files) and fall well under
+the 300 KB threshold. The inline path will be the
+norm; the fallback path exists for release audits
+and large refactors.
 
 ### Step 2: Claude Review
 
@@ -266,8 +290,20 @@ the user.
 
 ### Step 4: Cross-Validation
 
-Skip if `--quick` flag is set or if operating in
-claude-only mode. If skipping, go to Step 5.
+Skip this step and go straight to Step 5 if ANY of
+these are true:
+- `--quick` flag is set
+- Operating in claude-only mode (only Claude ran)
+- **Both models returned `NO_FINDINGS`** — there is
+  nothing for the validators to check, and running
+  them is pure overhead. This is the common case for
+  clean code and saves ~half the pipeline latency.
+
+If both initial reviewers found real issues, or if
+one found issues and the other returned NO_FINDINGS,
+proceed with cross-validation normally. Unique
+findings still need validation by the other model
+to qualify for the fix list.
 
 **Normalize before cross-injection.** Parse both
 models' findings into finding-schema objects. Never
