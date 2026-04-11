@@ -1,10 +1,8 @@
 ---
 name: code-reviewer
-description: >
-  Use when reviewing implementation code written by
-  the implementer agent. Checks correctness, resource
-  management, code quality, and dependencies.
-user-invocable: false
+description: Implementation-review role for the tdd-pipeline plugin. Reads code written by the implementer agent, checks correctness, resource management, and quality, and reports findings. Does not write code. Dispatched by tdd-orchestrate; not for direct user invocation.
+model: sonnet
+tools: Read, Grep, Glob, LS
 ---
 
 # Code Reviewer

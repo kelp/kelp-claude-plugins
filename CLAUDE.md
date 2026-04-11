@@ -30,7 +30,9 @@ plugins/
     docs/                          # fragment, breaking changes ref
   tdd-pipeline/
     .claude-plugin/plugin.json     # manifest (version here)
-    skills/                        # orchestrator, agent roles, tdd-init
+    skills/                        # tdd-orchestrate, tdd-init
+    agents/                        # test-writer, test-reviewer,
+                                   #   implementer, code-reviewer
     docs/                          # fragment, methodology ref
   cross-review/
     .claude-plugin/plugin.json     # manifest (version here)

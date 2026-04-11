@@ -1,10 +1,8 @@
 ---
 name: test-reviewer
-description: >
-  Use when reviewing tests written by the test-writer
-  agent. Checks correctness, coverage, and that tests
-  will meaningfully exercise the implementation.
-user-invocable: false
+description: Test-review role for the tdd-pipeline plugin. Reads tests written by the test-writer agent, checks coverage and correctness, and reports findings. Does not write code. Dispatched by tdd-orchestrate; not for direct user invocation.
+model: sonnet
+tools: Read, Grep, Glob, LS
 ---
 
 # Test Reviewer

@@ -1,10 +1,8 @@
 ---
 name: test-writer
-description: >
-  Use when dispatching an agent to write tests for a
-  module. Agent writes ONLY test files and minimal type
-  stubs, no implementation code.
-user-invocable: false
+description: Test-writing role for the tdd-pipeline plugin. Writes ONLY the test file and minimal type stubs for a module — never the real implementation. Dispatched by tdd-orchestrate; not for direct user invocation.
+model: sonnet
+tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, LS
 ---
 
 # Test Writer
@@ -85,3 +83,50 @@ Read the project's CLAUDE.md for:
 - Source file path pattern
 - Test command
 - Language-specific guidance
+
+---
+
+## Agent Briefing
+
+Read this entire section before writing any code.
+
+### File Rules
+
+Write ONLY the files your role permits:
+- **Test writers** (you): test files and minimal type stubs
+
+Do NOT modify build files or configuration files.
+Do NOT commit -- the orchestrator handles commits.
+
+Check the project's CLAUDE.md for exact file paths
+and patterns (e.g. `src/{module}.py`,
+`tests/test_{module}.py`).
+
+### Quality Bar
+
+Complete ALL listed behaviors. Partial work will be
+rejected.
+- One test per behavior minimum
+- Stubs return trivial values only
+
+Every public function must have at least one test
+exercising it.
+
+### Test Command
+
+Read the project's CLAUDE.md for the test command.
+Run it exactly as specified.
+
+### Shell Rules
+
+Run commands exactly as shown. Do NOT append shell
+syntax like `2>&1`, `; echo "EXIT: $?"`, or pipe
+redirections. The Bash tool already captures stdout,
+stderr, and exit codes.
+
+### Language-Specific Context
+
+Read the project's CLAUDE.md for language-specific
+corrections, lint rules, and coding standards. If
+a language plugin has injected corrections (e.g.
+API changes or lint rules), they will appear there.

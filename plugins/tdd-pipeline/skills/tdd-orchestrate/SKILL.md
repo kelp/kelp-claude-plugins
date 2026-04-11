@@ -166,7 +166,7 @@ Violations you MUST NOT commit:
 - Skipping any stage of the pipeline
 
 What you DO:
-- Dispatch agents with the correct role skill
+- Dispatch the correct plugin agent for each stage
 - Run verify gate checks between stages
 - Update build files after approval (if needed)
 - Run full test suite and commit
@@ -188,20 +188,26 @@ All of these mean STOP. Follow the pipeline.
 
 ## Dispatching Agents
 
-Use the Agent tool to launch sub-agents. Before
-dispatching, read the skill files from this plugin
-and include their content verbatim in the agent
-prompt:
-
-- `${CLAUDE_PLUGIN_ROOT}/skills/test-writer/SKILL.md`
-- `${CLAUDE_PLUGIN_ROOT}/skills/test-reviewer/SKILL.md`
-- `${CLAUDE_PLUGIN_ROOT}/skills/implementer/SKILL.md`
-- `${CLAUDE_PLUGIN_ROOT}/skills/code-reviewer/SKILL.md`
-- `${CLAUDE_PLUGIN_ROOT}/skills/agent-briefing/SKILL.md`
+Use the Agent tool with one of the plugin's four
+role-specific agent types. The role instructions
+are already baked into each agent's system prompt —
+do NOT read or inject skill content; pass only the
+module name, behavior list, type signatures, and
+other dispatch inputs.
 
 Agent types:
-- **programmer** agents: use `subagent_type: programmer`
-- **reviewer** agents: use `subagent_type: reviewer`
+- `subagent_type: tdd-pipeline:test-writer` —
+  writes tests and minimal type stubs
+- `subagent_type: tdd-pipeline:test-reviewer` —
+  reviews tests (read-only)
+- `subagent_type: tdd-pipeline:implementer` —
+  writes implementation code to pass tests
+- `subagent_type: tdd-pipeline:code-reviewer` —
+  reviews implementation (read-only)
+
+The test-writer and implementer agents bundle the
+file/shell/quality briefing; the reviewers do not,
+since reviewers never write files.
 
 ## Pipeline
 
@@ -211,9 +217,8 @@ below marked with `(CLAUDE.md)` must come from there.
 
 ### Stage 1: Test Writer
 
-Dispatch a **programmer** agent with:
-- The `test-writer` skill content
-- The `agent-briefing` skill content
+Dispatch `subagent_type: tdd-pipeline:test-writer`
+with:
 - Module name and behavior list
 - Type signatures and dependency APIs
 - Test command (CLAUDE.md)
@@ -224,15 +229,15 @@ signatures -- no real logic.
 
 ### Stage 2: Test Reviewer
 
-Dispatch a **reviewer** agent with:
-- The `test-reviewer` skill content
+Dispatch `subagent_type: tdd-pipeline:test-reviewer`
+with:
 - Module name and behavior list
 - The test file path
 
-**Fix loop**: if NEEDS_FIXES, dispatch a **programmer**
-agent with the `test-writer` skill and the reviewer's
+**Fix loop**: if NEEDS_FIXES, re-dispatch
+`tdd-pipeline:test-writer` with the reviewer's
 feedback as the fix list. Then re-dispatch the
-reviewer. Max 3 rounds, then escalate to user.
+test-reviewer. Max 3 rounds, then escalate to user.
 
 ### Stage 3: Red Gate
 
@@ -249,9 +254,8 @@ Only proceed when tests compile and all fail.
 
 ### Stage 4: Implementer
 
-Dispatch a **programmer** agent with:
-- The `implementer` skill content
-- The `agent-briefing` skill content
+Dispatch `subagent_type: tdd-pipeline:implementer`
+with:
 - Module name and behavior list
 - Type signatures and dependency APIs
 - Test command (CLAUDE.md)
@@ -274,15 +278,15 @@ specific feedback. Do NOT waste a reviewer dispatch.
 
 ### Stage 6: Code Reviewer
 
-Dispatch a **reviewer** agent with:
-- The `code-reviewer` skill content
+Dispatch `subagent_type: tdd-pipeline:code-reviewer`
+with:
 - Module name and behavior list
 - Source and test file paths
 
-**Fix loop**: if NEEDS_FIXES, dispatch a **programmer**
-agent with the `implementer` skill and the reviewer's
+**Fix loop**: if NEEDS_FIXES, re-dispatch
+`tdd-pipeline:implementer` with the reviewer's
 feedback as the fix list. Then re-dispatch the
-reviewer. Max 3 rounds, then escalate to user.
+code-reviewer. Max 3 rounds, then escalate to user.
 
 ### Stage 7: Integrate
 
