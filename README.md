@@ -89,13 +89,16 @@ confirmed ones so humans can triage them.
 **Requirements:**
 - [Codex CLI](https://github.com/openai/codex),
   authenticated for GPT-5.4 access
-- The `codex` plugin from the
-  [openai-codex marketplace](https://github.com/openai/codex),
-  installed to the default location. The plugin looks
-  for the companion script at
+- [codex-plugin-cc](https://github.com/openai/codex-plugin-cc),
+  OpenAI's Claude Code plugin that bridges Codex to
+  Claude Code. It installs via its `openai-codex`
+  marketplace and ships the companion script we call.
+  By default the plugin looks for that script at
   `$HOME/.claude/plugins/marketplaces/openai-codex/plugins/codex/scripts/codex-companion.mjs`.
-  If you installed codex elsewhere, set `codex-script:`
-  in your project CLAUDE.md to the actual path.
+  If you installed codex-plugin-cc elsewhere, set
+  `codex-script:` in your project CLAUDE.md to the
+  actual path — for security, the resolved path must
+  be under `$HOME/.claude/plugins/`.
 - Node.js on `PATH` to run the companion script
 
 Without these, `/cross-review` falls back to claude-only
