@@ -1,7 +1,8 @@
 # kelp-claude-plugins
 
-Two plugins that make Claude Code write correct code:
-one enforces TDD, the other fixes Zig 0.15.x.
+Three plugins that make Claude Code write correct code:
+one enforces TDD, one fixes Zig 0.15.x, and one gets a
+second opinion from GPT-5.4.
 
 ## Install
 
@@ -63,12 +64,50 @@ what it can touch. Language-specific context comes from
 CLAUDE.md, not the plugin -- so the pipeline works with
 any language.
 
+### cross-review
+
+A single model reviewing its own work misses bugs it
+would catch in someone else's. This plugin runs
+independent Claude and GPT-5.4 reviews, has each model
+validate the other's findings against the actual code,
+and merges the result into one prioritized fix list.
+
+```bash
+/plugin install cross-review@kelp-claude-plugins
+```
+
+Run `/cross-review` on uncommitted changes, or pass a
+scope: `/cross-review src/parser.zig` or `/cross-review
+last 2 commits`. Disputed findings are separated from
+confirmed ones so humans can triage them.
+
+**Flags:**
+- `--quick` -- skip cross-validation, merge raw findings
+- `--reconcile` -- let each model defend its disputed
+  findings in one follow-up round
+
+**Requirements:**
+- [Codex CLI](https://github.com/openai/codex),
+  authenticated for GPT-5.4 access
+- The `codex` plugin from the
+  [openai-codex marketplace](https://github.com/openai/codex),
+  which provides the companion script at
+  `$HOME/.claude/plugins/marketplaces/openai-codex/plugins/codex/scripts/codex-companion.mjs`
+- Node.js on `PATH` to run the companion script
+- A `codex-script:` line in the project's CLAUDE.md
+  pointing at that script
+
+Without these, `/cross-review` falls back to claude-only
+mode and runs a single-model review.
+
 ## Composition
 
 CLAUDE.md connects these plugins:
 
 1. `zig-claude-kit` appends language corrections
 2. `tdd-pipeline` reads test commands and file patterns
+3. `cross-review` reads the codex script path and
+   optional review focus
 
 ## License
 
