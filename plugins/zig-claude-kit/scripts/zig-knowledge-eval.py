@@ -135,6 +135,12 @@ def query_model(
         max_tokens=2048,
         messages=[{"role": "user", "content": prompt}],
     )
+    # The API can return a message with an empty content list on
+    # safety refusals or certain stop conditions. Return an empty
+    # string so extract_zig_code() fails cleanly and the caller
+    # records this as "no code" rather than crashing the whole run.
+    if not response.content:
+        return ""
     return response.content[0].text
 
 

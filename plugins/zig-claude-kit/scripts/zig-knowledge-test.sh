@@ -41,6 +41,12 @@ fi
 COMPILE_PASS=0
 COMPILE_FAIL=0
 
+# Script-level cleanup: if we exit unexpectedly (Ctrl-C, failure in
+# the loop body, etc.), remove the current iteration's temp dir.
+# Normal iteration cleanup still happens at the end of each loop.
+TMPDIR_OBJ=""
+trap '[[ -n "${TMPDIR_OBJ:-}" ]] && rm -rf "$TMPDIR_OBJ"' EXIT
+
 echo ""
 printf "${BOLD}Zig Knowledge Test${RESET}\n"
 printf "${DIM}Compiling probes against zig %s${RESET}\n" "$(zig version)"

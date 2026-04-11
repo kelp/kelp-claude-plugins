@@ -40,8 +40,8 @@ fi
 PASS_COUNT=0
 FAIL_COUNT=0
 
-TMPDIR=$(mktemp -d)
-trap 'rm -rf "$TMPDIR"' EXIT
+AUDIT_TMPDIR=$(mktemp -d)
+trap 'rm -rf "$AUDIT_TMPDIR"' EXIT
 
 probe() {
     local name="$1"
@@ -49,7 +49,7 @@ probe() {
     local expected="$3"
     local code="$4"
 
-    local file="$TMPDIR/${name}.zig"
+    local file="$AUDIT_TMPDIR/${name}.zig"
     echo "$code" > "$file"
 
     if zig test "$file" --color off 2>/dev/null 1>/dev/null; then
