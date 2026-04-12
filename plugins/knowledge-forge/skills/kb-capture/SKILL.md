@@ -257,6 +257,7 @@ the new note belongs there:
 - `index/concepts.md` → for every new concept note
 - `index/open-questions.md` → for every new question note
 - `index/playbooks.md` → for playbook-type concept notes
+- `index/reports.md` → for every new report note
 
 Format: `- [title](../wiki/<bucket>/<slug>.md) — one
 sentence hook`
@@ -289,3 +290,8 @@ Print:
   the ingest archive, populated by `scripts/ingest-web`.
 - **Do not set `status: stable`** on a first capture.
   Use `draft`; Travis promotes to `stable` manually.
+- **Do not write tool-keyword-dense bullet lists** in
+  report bodies (e.g. listing every recipe or command
+  by name). They pull retrieval rankings on unrelated
+  queries about those tools. If you need to enumerate
+  commands, link to the canonical doc instead.
