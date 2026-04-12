@@ -1,5 +1,6 @@
 ---
 name: kb-research-policy
+user-invocable: true
 description: >
   Routing and retrieval policy for Travis's personal
   knowledge base at ~/code/knowledge (or the
