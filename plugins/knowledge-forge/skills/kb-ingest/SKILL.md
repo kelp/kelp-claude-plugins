@@ -21,21 +21,26 @@ Safe to run from any working directory.
 
 Scope: $ARGUMENTS
 
-Format: `<url> [category] [tool] [version] [path_prefix]
-[selector]`
+Two forms:
 
-- `url` — required. The root URL to crawl.
+**Web crawl:** `<url> [category] [tool] [version]
+[path_prefix] [selector]`
+
+**Local copy:** `<local-path> [category] [tool] [version]`
+
+- `url` or `local-path` — required. An `https://` URL
+  to crawl, or an absolute/relative path to a local
+  directory of already-downloaded docs.
 - `category` — optional. Where in `raw/external/` to
   file the pack (e.g. `providers`, `tooling`,
   `protocols`, `languages`, `libraries`).
 - `tool` — optional. Tool/service name slug (e.g.
   `fastmail`, `jmap`, `uv`).
 - `version` — optional. Defaults to `latest`.
-- `path_prefix` — optional. Limits crawl to URLs with
-  this prefix (e.g. `/dev/` to scope to docs subpath).
-  Leave empty to crawl from the root URL.
-- `selector` — optional. CSS selector for content
-  extraction. Defaults to `main`.
+- `path_prefix` — optional (web only). Limits crawl to
+  URLs with this prefix. Leave empty to crawl from root.
+- `selector` — optional (web only). CSS selector for
+  content extraction. Defaults to `main`.
 
 ---
 
@@ -75,11 +80,21 @@ fi
 
 ## Step 2: Parse arguments and classify
 
-Extract `url`, `category`, `tool`, `version`,
-`path_prefix`, and `selector` from `$ARGUMENTS`.
+Extract the first token from `$ARGUMENTS`. Detect mode:
+
+- If it starts with `/`, `~/`, or `./` → **local mode**
+  (copy from a local directory; skip the web crawl)
+- Otherwise → **web mode** (crawl from the URL)
+
+In local mode, resolve the source path:
+```bash
+src_path=$(realpath "$first_token" 2>/dev/null)
+[ -d "$src_path" ] || { echo "Source path not found"; exit 1; }
+```
 
 If `category` and `tool` are not provided, derive them
-from the URL domain:
+from the URL domain (web mode) or ask once (local mode):
+
 
 | Domain | category | tool |
 |---|---|---|
@@ -117,7 +132,9 @@ existing crawled files in place.
 
 ---
 
-## Step 4: Run ingest-pack
+## Step 4: Populate the pack directory
+
+**Web mode** — crawl the URL:
 
 ```bash
 today=$(date +%Y-%m-%d)
@@ -126,14 +143,22 @@ cd "$kb_path" && just ingest-pack \
   "$path_prefix" "$selector"
 ```
 
-This runs `scripts/ingest-web pack` → `webdown crawl`
-and deposits markdown files into
-`raw/external/<category>/<tool>/<version>/`.
-
 If the crawl produces no files (or only tiny stubs),
 the site likely requires JS rendering. Try a different
 CSS selector (e.g. `article`, `.content`, `body`) or
 report to the user.
+
+**Local mode** — copy from the existing directory:
+
+```bash
+today=$(date +%Y-%m-%d)
+mkdir -p "$pack_dir"
+cp -r "$src_path/." "$pack_dir/"
+```
+
+This copies the already-downloaded docs into
+`raw/external/<category>/<tool>/<version>/` without
+making any network requests.
 
 ---
 
