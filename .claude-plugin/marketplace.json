@@ -30,7 +30,7 @@
     {
       "name": "knowledge-forge",
       "source": "./plugins/knowledge-forge",
-      "description": "Cross-session routing and capture for a three-layer personal knowledge base. Auto-discovered skill teaches index-first retrieval. /kb-capture files notes into the right wiki bucket with correct frontmatter.",
+      "description": "Cross-session routing and capture for a three-layer personal knowledge base. Auto-discovered skill teaches index-first retrieval. /kb-capture files notes into the right wiki bucket. /kb-ingest downloads external doc packs from any session.",
       "strict": false
     }
   ]
