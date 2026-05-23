@@ -1,7 +1,7 @@
 {
   "name": "zig-claude-kit",
-  "description": "Corrective context for Zig 0.15.x that fixes Claude's outdated training data. Covers I/O (Writergate), build.zig, format strings, ArrayList, BoundedArray, usingnamespace, division, tokenize, args, JSON, and for-loop index.",
-  "version": "0.2.1",
+  "description": "Corrective context for Zig 0.15.x and 0.16 that fixes Claude's outdated training data. Auto-detects target version from build.zig.zon. Covers I/O (Writergate + Io-as-Interface), std.fs -> std.Io move, Juicy Main, std.mem.indexOf -> find, sync primitives moved to Io, @Type split, ArrayList, BoundedArray, usingnamespace, format strings, build.zig, division, tokenize, args, JSON, for-loop index.",
+  "version": "0.3.0",
   "author": {
     "name": "Travis Cole"
   },

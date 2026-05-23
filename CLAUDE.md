@@ -7,8 +7,9 @@ when working with code in this repository.
 
 A Claude Code plugin marketplace containing three plugins:
 
-- **zig-claude-kit** -- corrective context for Zig 0.15.x
-  that fixes Claude's outdated training data
+- **zig-claude-kit** -- corrective context for Zig 0.15.x and
+  0.16 that fixes Claude's outdated training data;
+  auto-detects target from build.zig.zon
 - **tdd-pipeline** -- language-agnostic TDD pipeline with
   seven agents across separate stages
 - **cross-review** -- multi-model code review with
@@ -26,8 +27,10 @@ plugins/
     .claude-plugin/plugin.json     # manifest (version here)
     skills/                        # zig-init, zig-patterns, zig-check
     hooks/hooks.json               # SessionStart hook
-    scripts/                       # eval suite + session-start
-    docs/                          # fragment, breaking changes ref
+    scripts/                       # eval suite, audit-0.15/0.16,
+                                   #   session-start, detect-zig-version
+    docs/                          # claude-md-fragment-{0.15,0.16}.md,
+                                   #   ZIG_BREAKING_CHANGES-{0.15,0.16}.md
   tdd-pipeline/
     .claude-plugin/plugin.json     # manifest (version here)
     skills/                        # tdd-orchestrate, tdd-init
@@ -80,13 +83,19 @@ file patterns. No code-level coupling between plugins.
 Run from `plugins/zig-claude-kit/`:
 
 ```bash
-make eval                              # test all models
-make eval-model MODEL=claude-haiku-4-5 # test one model
-make compile-test MODEL=claude-sonnet-4-6
-make audit                             # probe current Zig
+make audit                             # auto-detect Zig version
+make audit-0.15                        # validate 0.15.x claims
+make audit-0.16                        # validate 0.16 claims
+
+make eval TARGET=0.16                  # blind-test default models
+make eval-model MODEL=claude-haiku-4-5 TARGET=0.16
+make compile-test MODEL=claude-sonnet-4-6 TARGET=0.16
 ```
 
-Requires `ANTHROPIC_API_KEY` and `uv`.
+`make eval` requires `ANTHROPIC_API_KEY` and `uv`; `make audit`
+requires `zig` on `PATH`. The `TARGET` variable labels output
+probe directories; what actually validates the code is the
+locally installed Zig.
 
 ## Writing Style
 

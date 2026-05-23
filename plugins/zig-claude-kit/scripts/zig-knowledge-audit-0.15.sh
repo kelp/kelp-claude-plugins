@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
-# zig-knowledge-audit.sh - Validate Zig breaking change claims
+# zig-knowledge-audit-0.15.sh - Validate 0.15.x breaking change claims
 #
-# This script tests the claims in docs/ZIG_BREAKING_CHANGES.md by
-# compiling small Zig code snippets ("probes"). Each probe checks
-# whether a specific old API pattern still compiles.
+# This script tests the claims in docs/ZIG_BREAKING_CHANGES-0.15.md
+# by compiling small Zig code snippets ("probes"). Each probe checks
+# whether a specific old API pattern still compiles. Run with Zig
+# 0.15.x installed.
 #
 # Usage:
-#   ./scripts/zig-knowledge-audit.sh
+#   ./scripts/zig-knowledge-audit-0.15.sh
 #
 # Interpreting results:
 #   PASS - The probe result matched expectations. If the expected
 #          result was "fail", the old API really is broken. If
 #          "pass", the new API really works.
 #   FAIL - Surprise! The result did not match expectations. This
-#          means docs/ZIG_BREAKING_CHANGES.md has a wrong claim
-#          and needs updating.
+#          means docs/ZIG_BREAKING_CHANGES-0.15.md has a wrong
+#          claim and needs updating.
 #
 # Exit code:
 #   0 - All probes matched expectations
@@ -71,8 +72,8 @@ probe() {
 
 # Header
 echo ""
-printf "${BOLD}Zig Knowledge Audit${RESET}\n"
-printf "${DIM}Testing breaking change claims against zig $(zig version)${RESET}\n"
+printf "${BOLD}Zig 0.15.x Knowledge Audit${RESET}\n"
+printf "${DIM}Testing 0.15.x breaking change claims against zig $(zig version)${RESET}\n"
 
 # ── I/O (Writergate) ──
 
@@ -478,6 +479,6 @@ echo ""
 
 if [[ $FAIL_COUNT -gt 0 ]]; then
     echo ""
-    echo "Surprises indicate docs/ZIG_BREAKING_CHANGES.md needs updating."
+    echo "Surprises indicate docs/ZIG_BREAKING_CHANGES-0.15.md needs updating."
     exit 1
 fi

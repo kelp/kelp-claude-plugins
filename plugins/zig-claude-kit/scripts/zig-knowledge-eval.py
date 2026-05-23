@@ -4,14 +4,21 @@
 # dependencies = ["anthropic"]
 # ///
 """
-Evaluate Claude models' Zig 0.15.x knowledge.
+Evaluate Claude models' Zig knowledge.
 
 Sends prompts to the Claude API with no project context, extracts
 generated Zig code, and compile-tests it to measure how many
-patterns each model gets right vs. wrong.
+patterns each model gets right vs. wrong on the locally installed
+Zig.
+
+The prompts are language-version-agnostic ("write hello world" etc.),
+but the "right answer" differs between 0.15.x and 0.16. Use --target
+to label probe output directories; the compile result against the
+installed compiler is what actually matters.
 
 Usage:
     uv run scripts/zig-knowledge-eval.py
+    uv run scripts/zig-knowledge-eval.py --target 0.16
     uv run scripts/zig-knowledge-eval.py --models claude-sonnet-4-6
     uv run scripts/zig-knowledge-eval.py --skip-compile
 """
@@ -146,7 +153,7 @@ def query_model(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Evaluate Claude models' Zig 0.15.x knowledge",
+        description="Evaluate Claude models' Zig knowledge",
     )
     parser.add_argument(
         "--models",
@@ -155,10 +162,16 @@ def main():
         help="Models to evaluate (default: %(default)s)",
     )
     parser.add_argument(
+        "--target",
+        choices=["0.15", "0.16"],
+        default="0.16",
+        help="Zig version label for output dir (default: %(default)s)",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("probes"),
-        help="Output directory (default: probes/)",
+        default=None,
+        help="Output directory (default: probes/<target>/)",
     )
     parser.add_argument(
         "--skip-compile",
@@ -166,6 +179,9 @@ def main():
         help="Skip compilation testing",
     )
     args = parser.parse_args()
+
+    if args.output_dir is None:
+        args.output_dir = Path("probes") / args.target
 
     client = anthropic.Anthropic()
     script_dir = Path(__file__).parent
