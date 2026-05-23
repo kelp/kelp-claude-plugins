@@ -5,14 +5,19 @@ when working with code in this repository.
 
 ## What This Repo Is
 
-A Claude Code plugin marketplace containing three plugins:
+A Claude Code plugin marketplace containing these plugins:
 
 - **zig-claude-kit** -- corrective context for Zig 0.15.x
   that fixes Claude's outdated training data
+- **tiger-style** -- TigerBeetle's Tiger Style methodology
+  for Zig (assertions, bounded loops, static memory,
+  snake_case naming, 70-line / 100-col limits)
 - **tdd-pipeline** -- language-agnostic TDD pipeline with
   seven agents across separate stages
 - **cross-review** -- multi-model code review with
   cross-validation using Claude and GPT-5.4
+- **knowledge-forge** -- cross-session routing and
+  capture for a three-layer personal knowledge base
 
 Users install via `/plugin marketplace add kelp/kelp-claude-plugins`,
 then `/plugin install <name>@kelp-claude-plugins`.
@@ -28,6 +33,12 @@ plugins/
     hooks/hooks.json               # SessionStart hook
     scripts/                       # eval suite + session-start
     docs/                          # fragment, breaking changes ref
+  tiger-style/
+    .claude-plugin/plugin.json     # manifest (version here)
+    skills/                        # tiger-init, tiger-patterns, tiger-check
+    hooks/hooks.json               # SessionStart hook
+    scripts/                       # session-start
+    docs/                          # fragment, reference doc
   tdd-pipeline/
     .claude-plugin/plugin.json     # manifest (version here)
     skills/                        # tdd-orchestrate, tdd-init
@@ -38,6 +49,11 @@ plugins/
     .claude-plugin/plugin.json     # manifest (version here)
     skills/cross-review/           # orchestrator skill
     agents/                        # reviewer, validator
+    docs/                          # fragment
+  knowledge-forge/
+    .claude-plugin/plugin.json     # manifest (version here)
+    skills/                        # kb-capture, kb-ingest,
+                                   #   kb-research-policy
     docs/                          # fragment
 ```
 

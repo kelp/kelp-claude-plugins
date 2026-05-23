@@ -16,6 +16,12 @@
       "strict": true
     },
     {
+      "name": "tiger-style",
+      "source": "./plugins/tiger-style",
+      "description": "TigerBeetle's Tiger Style methodology for Zig: assertions (2+ per fn, paired positive/negative), bounded loops (no recursion), static memory after init, snake_case naming with unit suffixes, 70-line function limit, 100-column line limit, zig fmt. Auto-loads in Zig projects.",
+      "strict": true
+    },
+    {
       "name": "tdd-pipeline",
       "source": "./plugins/tdd-pipeline",
       "description": "Language-agnostic TDD pipeline with test-first agents, review loops, and verify gates.",
