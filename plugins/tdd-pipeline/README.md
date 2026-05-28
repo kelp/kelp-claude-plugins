@@ -6,9 +6,11 @@ discipline with seven agents across separate stages.
 
 ## How It Works
 
-Seven agents, seven stages. No single agent both writes
-and reviews code. The orchestrator -- your main Claude
-session -- dispatches agents and reads only CLAUDE.md.
+The orchestrator -- your main Claude session --
+dispatches agents and reads only CLAUDE.md. It never
+writes source or test files itself.
+
+**Full pipeline** (new modules, ≥3 behaviors):
 
 ```
 1. Test Writer    write tests + type stubs (RED)
@@ -20,10 +22,28 @@ session -- dispatches agents and reads only CLAUDE.md.
 7. Integrate      update build files, full tests, commit
 ```
 
-The RED gate catches a common failure: stubs that
-contain real logic. Tests against such stubs always
-pass, proving nothing. Every test must fail before
-implementation begins.
+**Inline fast-track** (bug fixes, small changes):
+
+```
+1. Brief test-writer for the failing test
+2. Verify RED locally, commit
+3. Brief implementer for the fix
+4. Verify GREEN locally, commit
+```
+
+Inline still uses two agents and two commits — RED and
+GREEN are never combined — but skips the reviewer
+stages and the stub/RED-gate dance, because the test
+fails against the real bug, not against a stub.
+
+The RED gate (full pipeline) catches a common failure:
+stubs that contain real logic. Tests against such stubs
+always pass, proving nothing. Every test must fail
+before implementation begins.
+
+Fix loops use `SendMessage` to continue the original
+writer agent, not fresh dispatches — preserving the
+context the agent already built up.
 
 ## Install
 

@@ -42,68 +42,91 @@ scope clearly warrants the full pipeline.
 
 ## Inline Red-Green-Refactor
 
-### Step 1: Understand (< 2 minutes)
+Inline uses two agents and two commits. It skips the
+reviewer stages and the stub/RED-gate dance, because
+inline targets existing code where the test fails
+against the bug directly (no stub to typecheck against).
 
-Read the relevant source and test files. Identify where
-the change goes. Do NOT write a plan document or
-summarize what you're about to do — read the code and
-move to step 2.
+You are still a dispatcher. Do NOT write source or test
+files yourself. The orchestrator's job here is:
 
-If you catch yourself writing a plan, outlining an
-approach, or explaining what you will do: STOP. Write
-a test instead.
+1. Brief the test-writer (RED).
+2. Verify RED, commit the test.
+3. Brief the implementer (GREEN).
+4. Verify GREEN, commit the fix.
 
-### Step 2: RED — Write a failing test
+Use SendMessage to continue agents across stages when
+useful (see "Continuation Strategy" below).
 
-Write a test against the REAL production code. Import
-the actual module. Call the actual function. Assert the
-behavior you want.
+### Step 1: Understand (< 2 minutes, orchestrator-side)
 
-Run the test. It must fail. If it passes, either the
-feature already exists or your test doesn't exercise
-what you think it does. Investigate before proceeding.
+Read the relevant source and test files just enough to
+write a precise agent brief. Cite `path:line` for the
+target. Identify the existing test pattern in the file
+so the agent matches it. Do NOT write a plan document.
 
-**Watch for default-value traps.** If you're testing
-that a function returns false, nil, 0, or an empty
-string, and the stub already returns that value by
-default, your test passes immediately — you never see
-red. Fix this by either: (a) choosing inputs that
-should produce a non-default value, or (b) making the
-stub return an intentionally wrong value (e.g., a
-sentinel or the opposite of what you expect). A test
-that never fails against a stub proves nothing.
+### Step 2: RED — Dispatch test-writer
+
+Dispatch `subagent_type: tdd-pipeline:test-writer`
+with:
+- One sentence describing the bug.
+- The target file and line.
+- The test signature pattern to match (paste one
+  existing test from the same file as an example).
+- The exact assertion the new test should make.
+- A clear stopping point: "write the test, verify it
+  fails locally, report back. Do NOT commit; the
+  orchestrator commits."
+
+Run the project's test command yourself, confirm the
+new test fails for the right reason (not a compile
+error), commit the test with a message like
+`Test ... (RED)` or `Add failing test for ...`.
+
+**Watch for default-value traps.** If a test asserts a
+falsy value (false, nil, 0, "") that the existing buggy
+code already returns, the test passes for the wrong
+reason. Reject and re-dispatch with a brief naming the
+specific input that should produce a non-default result.
 
 **The test must fail for the RIGHT reason.** A compile
-error or import failure is not a valid red state — fix
-those first so the test runs and fails on the assertion.
+error is not a valid red state — surface it and ask the
+test-writer to fix the stubs.
 
-### Step 3: GREEN — Minimal implementation
+### Step 3: GREEN — Dispatch implementer
 
-Write the smallest change to make the test pass. No
-refactoring. No cleanup. No extra features. Just make
-the red test turn green.
+Dispatch `subagent_type: tdd-pipeline:implementer`
+with:
+- The RED commit SHA and the test name.
+- The target source file and line range.
+- The expected change in one paragraph (not "figure it
+  out from the test" — be specific; you already know).
+- A clear stopping point: "write the fix, verify all
+  tests pass locally, report back. Do NOT commit."
 
-Run the test. If it fails, fix the implementation (not
-the test) until it passes.
-
-Run the FULL test suite. If other tests broke, fix the
-implementation until everything passes.
+Run the project's test command yourself, confirm all
+tests pass (not just the new one), commit with a
+message describing the fix.
 
 ### Step 4: REFACTOR (only if needed)
 
 If the code is clear and clean, skip this step. If you
-refactor, run the full test suite after every change.
-
-### Step 5: Commit
-
-Commit with a descriptive message. One logical change
-per commit.
+refactor, dispatch a fresh implementer with a brief
+naming the specific cleanup; do not extend the GREEN
+agent's scope.
 
 ### Repeat
 
-If the task requires multiple changes, repeat from
-step 2 for each behavior. One test-implement cycle
-per behavior.
+If the task requires multiple bugs, repeat from step 1
+for each. One bug = one RED + GREEN pair.
+
+### Skip-reviewer applies here
+
+Inline does NOT use the test-reviewer or code-reviewer
+stages. The full test suite is your safety net. If a
+bug is genuinely subtle (API design, security
+boundary, concurrency), promote it to the full pipeline
+instead — don't bolt reviewers onto inline.
 
 ## Common Mistakes
 
@@ -175,16 +198,30 @@ What you DO:
 If you catch yourself about to use Write or Edit on
 a source or test file, STOP. Dispatch an agent.
 
-## Red Flags -- You Are Skipping the Pipeline
+## Red Flags -- You Are Skipping the Full Pipeline
 
-- "I'll write both tests and code in one agent"
-- "This module is simple enough to skip review"
-- "Let me just fix this one test real quick"
+These are violations of the **full pipeline**. If
+inline is the correct routing (see "Decide" above),
+several are legitimate inline behaviors; promote to
+the full pipeline only when scope justifies it.
+
+- "I'll write both tests and code in one agent" — not
+  even inline does this; inline still separates RED
+  and GREEN into two agent dispatches.
+- "This module is simple enough to skip review" — true
+  for inline; never true for a new module.
+- "Let me just fix this one test real quick" — STOP.
+  Dispatch an agent even for one-line fixes.
 - "The test-writer can also stub the implementation"
-- "We don't need to run tests before implementing"
-- "The stubs are trivial, RED gate is unnecessary"
+  — STOP. The test-writer never writes real impl.
+- "We don't need to run tests before implementing" —
+  STOP. The RED gate is non-negotiable.
+- "The stubs are trivial, RED gate is unnecessary" —
+  STOP. The gate exists to catch stubs containing
+  accidental real logic.
 
-All of these mean STOP. Follow the pipeline.
+In all cases: if you'd be using Write or Edit yourself
+on a source or test file, STOP. Dispatch an agent.
 
 ## Dispatching Agents
 
@@ -208,6 +245,79 @@ Agent types:
 The test-writer and implementer agents bundle the
 file/shell/quality briefing; the reviewers do not,
 since reviewers never write files.
+
+## Continuation Strategy
+
+**Default to SendMessage, not fresh Agent dispatches,
+inside any fix loop.**
+
+When a reviewer reports NEEDS_FIXES, the just-finished
+writer agent still exists. Continuing it with
+SendMessage preserves all the context it has already
+built up — the file layout it learned, the design doc
+it read, the tests it just wrote. A fresh Agent dispatch
+re-pays all that cost.
+
+Use SendMessage when:
+- A reviewer says NEEDS_FIXES and the original writer is
+  still resumable.
+- The Verify Gate fails and the implementer can fix the
+  specific issue you identify.
+- You need a small follow-up on a recently completed
+  agent's work (same file, related change).
+
+Use a fresh Agent dispatch when:
+- The previous agent is no longer resumable.
+- The work is genuinely independent (different file,
+  unrelated bug).
+- You want a clean-slate perspective — e.g. a second
+  reviewer for a contested call.
+
+Each completion notification reports the agent ID and
+explicitly says "use SendMessage with to: '<id>' to
+continue this agent." Capture and use it.
+
+## Briefing Strategy
+
+Agents pay a cold-start cost: they read CLAUDE.md, grep
+the codebase, re-discover the layout you already know.
+Every fact you inline in the brief is a tool call the
+agent doesn't have to make.
+
+**Inline rather than reference, within reason:**
+
+- If the agent needs a 1-page design fact, paste it.
+  Don't say "read docs/foo.md fully." Reading a 700-line
+  doc costs the agent 5+ tool calls.
+- Cite `path:line` for known targets. The agent goes
+  straight there; no grep dance.
+- Paste an existing test from the same file as a
+  pattern example. The agent matches style without
+  exploring the file.
+- Quote relevant CLAUDE.md sections when the agent
+  needs language-specific guidance (e.g. "Zig 0.16 uses
+  `std.Io.File.stdout()`, not `std.io.getStdOut()`").
+
+**Don't inline indiscriminately:**
+
+- A full project tour belongs in CLAUDE.md, not in
+  every brief. Let the agent's tools cover what changes
+  per project.
+- Don't paste hundreds of lines when a `path:line:line`
+  span and one sentence suffice.
+
+**Cap exploration:**
+
+Tell agents "don't read more than N files; if you can't
+find what you need, report back." Prevents 30-tool-call
+discovery hikes when your brief was incomplete.
+
+**Trust agent verification:**
+
+If the agent verified the tests pass and reported the
+counts, spot-check by running the test command once
+yourself — don't ask the agent to re-verify. Trust but
+verify.
 
 ## Pipeline
 
@@ -234,10 +344,13 @@ with:
 - Module name and behavior list
 - The test file path
 
-**Fix loop**: if NEEDS_FIXES, re-dispatch
-`tdd-pipeline:test-writer` with the reviewer's
-feedback as the fix list. Then re-dispatch the
-test-reviewer. Max 3 rounds, then escalate to user.
+**Fix loop**: if NEEDS_FIXES, use **SendMessage** to
+continue the original test-writer agent with the
+reviewer's feedback as the fix list (see "Continuation
+Strategy"). The writer already has the design and file
+context — a fresh dispatch re-pays that cost. Then
+re-dispatch the test-reviewer (clean perspective on the
+fixed tests). Max 3 rounds, then escalate to user.
 
 ### Stage 3: Red Gate
 
@@ -273,8 +386,11 @@ Run these checks yourself (do NOT dispatch an agent):
 3. Lint command passes (CLAUDE.md)
 4. Language-specific checks pass (CLAUDE.md)
 
-If any check fails: re-dispatch implementer with
-specific feedback. Do NOT waste a reviewer dispatch.
+If any check fails: use **SendMessage** to continue the
+implementer with the specific failure (see
+"Continuation Strategy"). Do NOT waste a reviewer
+dispatch and do NOT spawn a fresh implementer — the
+one that just finished still has the file loaded.
 
 ### Stage 6: Code Reviewer
 
@@ -283,10 +399,14 @@ with:
 - Module name and behavior list
 - Source and test file paths
 
-**Fix loop**: if NEEDS_FIXES, re-dispatch
-`tdd-pipeline:implementer` with the reviewer's
-feedback as the fix list. Then re-dispatch the
-code-reviewer. Max 3 rounds, then escalate to user.
+**Fix loop**: if NEEDS_FIXES, use **SendMessage** to
+continue the original implementer agent with the
+reviewer's feedback as the fix list (see "Continuation
+Strategy"). The implementer already has the test file
+and implementation context loaded — a fresh dispatch
+re-pays that cost. Then re-dispatch the code-reviewer
+(clean perspective on the fixed code). Max 3 rounds,
+then escalate to user.
 
 ### Stage 7: Integrate
 
