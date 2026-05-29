@@ -1,7 +1,6 @@
 ---
 name: test-reviewer
 description: Test-review role for the tdd-pipeline plugin. Reads tests written by the test-writer agent, checks coverage and correctness, and reports findings. Does not write code. Dispatched by tdd-orchestrate; not for direct user invocation.
-model: sonnet
 tools: Read, Grep, Glob, LS
 ---
 

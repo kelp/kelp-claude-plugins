@@ -24,6 +24,22 @@ Task: $0
 If no task was provided, ask the user what to implement
 or fix. One sentence is enough.
 
+## Model
+
+Agents inherit your session model by default. Sonnet
+often fails the reviewer gates and loops many times,
+which costs more wall-clock and tokens than Opus
+one-shotting the stage — so prefer a capable model for
+this pipeline.
+
+To pin a model regardless of session, pass `--model
+<name>` in the task (e.g. `/tdd-orchestrate --model opus
+parser`). Strip the flag from the task text before
+briefing agents, then pass `model: <name>` to every
+Agent dispatch in this skill (inline and full pipeline
+alike). With no flag, omit `model:` so each agent
+inherits the session model.
+
 ## Decide: Pipeline or Inline
 
 **Use the full pipeline** (see "Pipeline" section) when:
@@ -245,6 +261,11 @@ Agent types:
 The test-writer and implementer agents bundle the
 file/shell/quality briefing; the reviewers do not,
 since reviewers never write files.
+
+If the task carried a `--model <name>` flag (see
+"Model"), pass `model: <name>` on every Agent dispatch
+below. Otherwise omit it and let agents inherit the
+session model.
 
 ## Continuation Strategy
 

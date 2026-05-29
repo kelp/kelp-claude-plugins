@@ -15,7 +15,7 @@ A Claude Code plugin marketplace containing these plugins:
 - **tdd-pipeline** -- language-agnostic TDD pipeline with
   seven agents across separate stages
 - **cross-review** -- multi-model code review with
-  cross-validation using Claude and GPT-5.4
+  cross-validation using Claude and GPT-5.5
 - **knowledge-forge** -- cross-session routing and
   capture for a three-layer personal knowledge base
 

@@ -6,7 +6,7 @@ Claude Code plugins by kelp:
 - **tiger-style** -- applies TigerBeetle's Tiger Style to
   Zig projects
 - **tdd-pipeline** -- enforces TDD across separate agents
-- **cross-review** -- gets a second opinion from GPT-5.4
+- **cross-review** -- gets a second opinion from GPT-5.5
 - **knowledge-forge** -- captures notes and routes
   retrieval for a personal knowledge base
 
@@ -106,7 +106,7 @@ any language.
 
 A single model reviewing its own work misses bugs it
 would catch in someone else's. This plugin runs
-independent Claude and GPT-5.4 reviews, has each model
+independent Claude and GPT-5.5 reviews, has each model
 validate the other's findings against the actual code,
 and merges the result into one prioritized fix list.
 
@@ -126,7 +126,7 @@ confirmed ones so humans can triage them.
 
 **Requirements:**
 - [Codex CLI](https://github.com/openai/codex),
-  authenticated for GPT-5.4 access
+  authenticated for GPT-5.5 access
 - [codex-plugin-cc](https://github.com/openai/codex-plugin-cc),
   OpenAI's Claude Code plugin that bridges Codex to
   Claude Code. It installs via its `openai-codex`

@@ -1,7 +1,6 @@
 ---
 name: validator
 description: Cross-validation role for the cross-review plugin. Checks findings produced by another model against the actual code and marks each as CONFIRMED, DISPUTED, or UNCERTAIN. Not for direct user invocation; dispatched by the cross-review orchestrator.
-model: sonnet
 tools: Read, Grep, Glob, LS
 ---
 

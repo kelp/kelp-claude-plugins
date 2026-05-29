@@ -2,7 +2,7 @@
 name: cross-review
 description: >
   Multi-model code review with cross-validation.
-  Orchestrates independent Claude and GPT-5.4 reviews,
+  Orchestrates independent Claude and GPT-5.5 reviews,
   cross-validates findings, outputs merged fix list.
   Use when reviewing code changes, auditing files, or
   wanting a second opinion. Triggers on: "cross-review",
@@ -37,6 +37,12 @@ Flags:
   of the validator's reasoning. Incompatible with
   `--quick`. Adds one round of reconciliation per
   disputed finding.
+- `--model <name>`: run the Claude-side reviewer and
+  validator agents on a specific model (e.g. `opus`)
+  instead of the session model. Does NOT affect the
+  codex/GPT side — that model is set by your codex
+  install. With no flag, the agents inherit the
+  session model.
 
 ## The Rule
 
@@ -52,7 +58,7 @@ Violations you MUST NOT commit:
 What you DO:
 - Read files and diffs to package context
 - Dispatch reviewer and validator agents
-- Shell out to codex for GPT-5.4 reviews
+- Shell out to codex for GPT-5.5 reviews
 - Parse and normalize findings
 - Merge results and format output
 
@@ -80,6 +86,12 @@ All of these mean STOP. Follow the pipeline.
 Parse `$ARGUMENTS`:
 - Strip `--quick` and `--reconcile` flags if present;
   record each one as a boolean.
+- Strip `--model <name>` if present; record the model
+  name. When set, pass `model: <name>` to every
+  `cross-review:reviewer` and `cross-review:validator`
+  Agent dispatch below. When absent, omit `model:` so
+  those agents inherit the session model. This flag
+  never affects the codex/GPT side.
 - If BOTH `--quick` and `--reconcile` are set, stop
   immediately and report an error — they are
   incompatible (quick mode skips cross-validation, so

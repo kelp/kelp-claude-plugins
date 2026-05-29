@@ -1,7 +1,6 @@
 ---
 name: implementer
 description: Implementation role for the tdd-pipeline plugin. Writes ONLY the source file to make existing tests pass — never modifies tests or build files. Dispatched by tdd-orchestrate; not for direct user invocation.
-model: sonnet
 tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, LS
 ---
 

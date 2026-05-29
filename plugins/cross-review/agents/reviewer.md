@@ -1,7 +1,6 @@
 ---
 name: reviewer
 description: Adversarial code review role for the cross-review plugin. Finds material issues — expensive, dangerous, or hard-to-detect failures — and returns them in a fixed schema. Not for direct user invocation; dispatched by the cross-review orchestrator.
-model: sonnet
 tools: Read, Grep, Glob, LS
 ---
 
