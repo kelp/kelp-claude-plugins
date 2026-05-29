@@ -10,6 +10,8 @@ description: >
   "add a feature", "implement", "run the pipeline",
   "TDD pipeline", "build a module with TDD", or any
   coding task in a project with TDD in its CLAUDE.md.
+  Agents inherit the session model; pass `--model <name>`
+  to pin one for the run.
 user-invocable: true
 ---
 

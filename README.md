@@ -82,7 +82,10 @@ agent both writes and reviews code.
 ```
 
 Run `/tdd-init` to configure your project, then
-`/tdd-orchestrate parser` to build a module.
+`/tdd-orchestrate parser` to build a module. Agents
+inherit your session model; pass `--model <name>` (e.g.
+`/tdd-orchestrate --model opus parser`) to pin one for
+the run.
 
 **The pipeline:**
 
@@ -123,6 +126,9 @@ confirmed ones so humans can triage them.
 - `--quick` -- skip cross-validation, merge raw findings
 - `--reconcile` -- let each model defend its disputed
   findings in one follow-up round
+- `--model <name>` -- run the Claude-side agents on a
+  specific model (e.g. `opus`) instead of the session
+  model; the GPT side is set by your codex install
 
 **Requirements:**
 - [Codex CLI](https://github.com/openai/codex),

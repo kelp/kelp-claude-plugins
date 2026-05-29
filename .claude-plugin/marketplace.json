@@ -24,13 +24,13 @@
     {
       "name": "tdd-pipeline",
       "source": "./plugins/tdd-pipeline",
-      "description": "Language-agnostic TDD pipeline with test-first agents, review loops, and verify gates.",
+      "description": "Language-agnostic TDD pipeline with test-first agents, review loops, and verify gates. Agents inherit the session model, or pin one per run with --model.",
       "strict": false
     },
     {
       "name": "cross-review",
       "source": "./plugins/cross-review",
-      "description": "Multi-model code review with cross-validation. Orchestrates Claude and GPT-5.5 reviews, validates findings against each other, outputs merged fix list.",
+      "description": "Multi-model code review with cross-validation. Orchestrates Claude and GPT-5.5 reviews, validates findings against each other, outputs merged fix list. Pass --model to set the Claude-side model.",
       "strict": false
     },
     {

@@ -7,7 +7,8 @@ description: >
   Use when reviewing code changes, auditing files, or
   wanting a second opinion. Triggers on: "cross-review",
   "multi-model review", "review with codex", "get a
-  second opinion on this code".
+  second opinion on this code". Pass `--model <name>` to
+  run the Claude-side agents on a specific model.
 user-invocable: true
 ---
 
