@@ -2,10 +2,10 @@
 # Detect Zig projects without Tiger Style guidance.
 # Runs at Claude Code session start via plugin hook.
 
-# Only act in Zig projects
-if [ ! -f "build.zig" ] && \
-   ! compgen -G "*.zig" > /dev/null 2>&1 && \
-   ! compgen -G "src/*.zig" > /dev/null 2>&1; then
+# Only act in actual Zig projects -- build.zig or
+# build.zig.zon at the project root. Stray .zig files
+# alone do not qualify.
+if [ ! -f "build.zig" ] && [ ! -f "build.zig.zon" ]; then
   exit 0
 fi
 

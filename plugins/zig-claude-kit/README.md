@@ -46,10 +46,11 @@ persist across fresh conversations.
 
 ## Use
 
-Open a Zig project. The plugin detects Zig source files
-and prompts you to run `/zig-init`. That command appends
-corrections to your CLAUDE.md. Every agent reads them
-as project context.
+Open a Zig project. The plugin detects `build.zig` (or
+`build.zig.zon`) at the project root and prompts you to
+run `/zig-init`. That command appends corrections to
+your CLAUDE.md. Every agent reads them as project
+context.
 
 **Commands:**
 - `/zig-init` -- inject corrections into CLAUDE.md

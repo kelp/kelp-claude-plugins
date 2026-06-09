@@ -54,10 +54,11 @@ follows the same rules.
 
 ## Use
 
-Open any Zig project. The plugin detects Zig source
-files and prompts you to run `/tiger-init`. That command
-appends Tiger Style guidance to your CLAUDE.md. Every
-agent reads it as project context.
+Open any Zig project. The plugin detects `build.zig`
+(or `build.zig.zon`) at the project root and prompts
+you to run `/tiger-init`. That command appends Tiger
+Style guidance to your CLAUDE.md. Every agent reads it
+as project context.
 
 **Commands:**
 
