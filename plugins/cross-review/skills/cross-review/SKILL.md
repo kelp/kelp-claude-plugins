@@ -287,7 +287,7 @@ the prompt directly into the shell command. Instead:
    command substitution around the file contents:
 
    ```bash
-   node "$codex_script" task --wait "$(cat "$cr_tmpdir/review.txt")"
+   timeout 120 node "$codex_script" task --wait "$(cat "$cr_tmpdir/review.txt")"
    ```
 
 Both the script path AND the prompt-file path MUST
@@ -301,6 +301,15 @@ POSIX shell expansion is single-pass: the result of
 double-quoted context as a literal string and is NOT
 re-scanned for metacharacters. File contents
 containing `"`, backticks, `$`, or `$(...)` are safe.
+This guarantee covers the shell layer only — a custom
+`codex-script:` must pass the prompt argument to the
+API directly, not through another shell.
+
+The `timeout 120` cap keeps a hung codex process
+(network stall, rate limit) from hanging the whole
+pipeline. Treat exit code 124 like any other codex
+failure: fall back per Step 3 and tell the user codex
+timed out.
 
 Use a distinct file name per stage inside
 `$cr_tmpdir` (`review.txt`, `validate-claude.txt`,
@@ -373,9 +382,9 @@ Code to review:
 <INSERT PACKAGED CONTEXT HERE>
 ---
 
-Collect codex output. If the script fails or exits
-non-zero, fall back to claude-only mode and warn
-the user.
+Collect codex output. If the script fails, times out
+(exit code 124), or exits non-zero, fall back to
+claude-only mode and warn the user.
 
 ### Step 4: Cross-Validation
 
@@ -472,7 +481,7 @@ safe quoted-variable pattern from Step 3:
 ```bash
 # Write the validation prompt to "$cr_tmpdir/validate-claude.txt" first.
 # Then call codex:
-node "$codex_script" task --wait "$(cat "$cr_tmpdir/validate-claude.txt")"
+timeout 120 node "$codex_script" task --wait "$(cat "$cr_tmpdir/validate-claude.txt")"
 ```
 
 Both `$codex_script` and the `cat` argument MUST be
@@ -618,9 +627,11 @@ above prompt to `"$cr_tmpdir/reconcile-<id>.txt"`
 shell out with both paths quoted:
 
 ```bash
-node "$codex_script" task --wait "$(cat "$cr_tmpdir/reconcile-<id>.txt")"
+timeout 120 node "$codex_script" task --wait "$(cat "$cr_tmpdir/reconcile-<id>.txt")"
 ```
 
+Replace `<id>` with the finding's number (e.g.
+`reconcile-3.txt`) — do not emit the literal `<id>`.
 Both `$codex_script` and the cat argument MUST be
 double-quoted, matching the safe pattern from Step 3.
 

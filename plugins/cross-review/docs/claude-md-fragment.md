@@ -9,7 +9,7 @@ lives somewhere else. For security, the resolved
 path must be under `$HOME/.claude/plugins/` — paths
 outside that prefix are rejected.
 
-# codex-script: $HOME/.claude/plugins/marketplaces/openai-codex/plugins/codex/scripts/codex-companion.mjs
+# codex-script: $HOME/.claude/plugins/<path-to-your>/codex-companion.mjs
 
 ### Review Focus (optional)
 Customize what cross-review prioritizes for this
