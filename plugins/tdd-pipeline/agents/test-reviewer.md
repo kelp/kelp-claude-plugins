@@ -38,6 +38,21 @@ do NOT write code. You report findings.
   returning that same default would pass the test.
   These tests never go red and prove nothing
 
+### Test-Double Fidelity
+- When tests exercise behavior through a fake/mock/stub
+  of an external dependency (database, HTTP API, queue),
+  check the double reproduces the failure semantics the
+  real dependency has: constraint/conflict errors, rate
+  limits, partial failures, ordering guarantees
+- Flag any test that passes only because the double is
+  more forgiving than the real engine (e.g. a fake DB
+  that accepts duplicate conflict keys where a real
+  `ON CONFLICT DO UPDATE` errors)
+- If the behavior under test depends on real-engine
+  semantics the double cannot reproduce, report it as a
+  coverage gap needing an integration-level test -- not
+  more unit tests against the fake
+
 ### Language-Specific
 - Check for language-specific issues described in
   the project's CLAUDE.md

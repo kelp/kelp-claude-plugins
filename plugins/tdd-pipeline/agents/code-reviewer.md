@@ -42,6 +42,17 @@ agent. You do NOT write code. You report findings.
 - No circular dependencies
 - No filesystem or network I/O in pure logic modules
 
+### Module Seams
+- List the contracts this change crosses: callers in
+  other modules or runtimes, shared key/enum sets, data
+  written here that another module reads
+- For each seam, check something pins the contract -- a
+  test, a shared type, an assertion. An implicit
+  contract (e.g. "the sub-keys this writer produces
+  match what the reader queries") is where unit-green
+  bugs live; flag unpinned ones as IMPORTANT with a
+  suggested contract test
+
 ### Language-Specific
 - Check for language-specific issues described in
   the project's CLAUDE.md
