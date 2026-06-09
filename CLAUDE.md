@@ -12,8 +12,10 @@ A Claude Code plugin marketplace containing these plugins:
 - **tiger-style** -- TigerBeetle's Tiger Style methodology
   for Zig (assertions, bounded loops, static memory,
   snake_case naming, 70-line / 100-col limits)
-- **tdd-pipeline** -- language-agnostic TDD pipeline with
-  seven agents across separate stages
+- **tdd-pipeline** -- language-agnostic TDD pipeline:
+  four agent roles across a seven-stage pipeline (the
+  red/verify/integrate gates run in the orchestrator,
+  not as separate agents)
 - **cross-review** -- multi-model code review with
   cross-validation using Claude and GPT-5.5
 - **knowledge-forge** -- cross-session routing and
@@ -90,6 +92,24 @@ CLAUDE.md is the integration point between plugins.
 Language plugins (zig-claude-kit) append corrections.
 Process plugins (tdd-pipeline) read test commands and
 file patterns. No code-level coupling between plugins.
+
+## Heads-up: edit here, not the installed copies
+
+This repo (`~/code/kelp-claude-plugins`) is the only place to
+edit. Claude Code keeps two other copies that look editable but
+aren't the source:
+
+- `~/.claude/plugins/marketplaces/kelp-claude-plugins/` — a
+  plugin-system-managed clone; local edits there fight the next
+  marketplace update.
+- `~/.claude/plugins/cache/kelp-claude-plugins/<plugin>/<ver>/` —
+  what running sessions actually load.
+
+Changes take effect only after bumping the plugin's version in
+`.claude-plugin/plugin.json`, committing/pushing, and updating the
+marketplace. For same-machine testing before release, mirror the
+edited files into the current version's cache dir (they'll be
+overwritten by the next real update, harmlessly).
 
 ## Zig Plugin Eval Suite
 

@@ -2,7 +2,8 @@
 
 Claude skips tests, reviews its own work, and writes
 stubs that pass. This plugin enforces test-first
-discipline with seven agents across separate stages.
+discipline with four agent roles across a seven-stage
+pipeline.
 
 ## How It Works
 

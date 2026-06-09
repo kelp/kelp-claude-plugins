@@ -4,7 +4,7 @@ description: >
   Enforce strict red-green-refactor TDD for any task.
   Use when implementing features, fixing bugs, adding
   functionality, or building new modules. Routes to the
-  full 7-agent pipeline for new modules with 3+ behaviors,
+  full 7-stage pipeline for new modules with 3+ behaviors,
   or runs inline red-green-refactor for bug fixes and
   small changes. Triggers on: "use TDD", "fix this bug",
   "add a feature", "implement", "run the pipeline",
