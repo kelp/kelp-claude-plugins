@@ -9,8 +9,9 @@ if [ ! -f "build.zig" ] && [ ! -f "build.zig.zon" ]; then
   exit 0
 fi
 
-# Check if Tiger Style guidance already present
-if grep -q "Tiger Style" CLAUDE.md 2>/dev/null; then
+# Check if Tiger Style guidance already present.
+# Match the fragment heading, not any prose mention.
+if grep -q "## Tiger Style" CLAUDE.md 2>/dev/null; then
   exit 0
 fi
 
@@ -38,7 +39,7 @@ uninstall the tiger-style plugin if this project should
 not follow Tiger Style."
 
 Do NOT proceed with other work until the user has run
-/tiger-init or explicitly declined. The guidance above
+/tiger-style:tiger-init or explicitly declined. The guidance above
 covers this session only and will be lost when it ends.
 INSTRUCTIONS
 exit 0

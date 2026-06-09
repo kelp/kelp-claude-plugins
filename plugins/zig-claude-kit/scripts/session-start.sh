@@ -35,7 +35,7 @@ user:
 Please run /zig-claude-kit:zig-init before we continue."
 
 Do NOT proceed with other work until the user has run
-/zig-init or explicitly declined. The corrections above
+/zig-claude-kit:zig-init or explicitly declined. The corrections above
 cover this session only and will be lost when it ends.
 INSTRUCTIONS
 exit 0

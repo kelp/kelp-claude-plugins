@@ -117,8 +117,9 @@ or run `/tiger-style:tiger-patterns`.
   architecture-dependent `usize` unless interfacing with
   APIs that require it.
 - Show intent for division: use `@divExact`, `@divFloor`,
-  or `div_ceil` rather than bare `/`. (See `/zig-check`
-  for `@divTrunc`/`@divFloor` enforcement.)
+  or `div_ceil` rather than bare `/`. (See
+  `/zig-claude-kit:zig-check` for `@divTrunc`/`@divFloor`
+  enforcement.)
 - **Pass options explicitly** at the call site rather
   than relying on defaults.
 
