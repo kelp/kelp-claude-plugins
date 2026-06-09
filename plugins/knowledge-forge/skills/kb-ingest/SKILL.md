@@ -1,7 +1,7 @@
 ---
 name: kb-ingest
 description: >
-  Download an external documentation site into Travis's
+  Download an external documentation site into your
   personal knowledge base as a doc pack and source note.
   Use when the user says "/kb-ingest <url>", "ingest
   these docs", "add these docs to the KB", or "download
@@ -55,7 +55,13 @@ if [ -f CLAUDE.md ]; then
   raw=$(grep -E "^knowledge-base:" CLAUDE.md | head -1 \
     | sed 's/^knowledge-base://; s/^[[:space:]]*//; s/[[:space:]]*$//')
   if [ -n "$raw" ]; then
-    kb_path=$(eval echo "$raw")
+    # Expand ~ or $HOME prefix only -- never eval
+    # untrusted CLAUDE.md content
+    case "$raw" in
+      '~'|'~/'*) kb_path="$HOME${raw#\~}" ;;
+      '$HOME'*)  kb_path="$HOME${raw#\$HOME}" ;;
+      *)         kb_path="$raw" ;;
+    esac
   fi
 fi
 if [ -z "$kb_path" ]; then
@@ -215,7 +221,11 @@ add that project slug). Leave `[]` if unknown.
 ## Step 7: Write source note
 
 Compute the source note path:
-`"$kb_path/wiki/sources/external/source-<tool>-<version>.md"`
+`"$kb_path/wiki/sources/external/<category>/source-<tool>-<version>.md"`
+
+This matches kb-capture's source-note destination
+(`wiki/sources/external/<category>/<slug>.md`), so
+ingested and captured source notes share one layout.
 
 If that path already exists, append `-2`, `-3`, … to
 the slug until free.
@@ -291,7 +301,7 @@ Append one line to `"$kb_path/index/sources.md"`:
 
 ```
 - `source-<tool>-<version>` — <short description>.
-  (`wiki/sources/external/source-<tool>-<version>.md`)
+  (`wiki/sources/external/<category>/source-<tool>-<version>.md`)
 ```
 
 ---

@@ -67,4 +67,5 @@ frontmatter, runs `just lint` as a gate, then
 
 ## Version
 
-0.1.0 — initial release.
+See `.claude-plugin/plugin.json` — the only
+authoritative version source.

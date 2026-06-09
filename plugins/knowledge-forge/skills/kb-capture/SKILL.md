@@ -2,7 +2,7 @@
 name: kb-capture
 description: >
   Capture the current conversation, a source, or a
-  synthesis into Travis's personal knowledge base as a
+  synthesis into your personal knowledge base as a
   well-formed wiki note. Writes correct frontmatter with
   today's date, picks the right bucket (sources/external,
   reports/, concepts/, questions/), cites existing source
@@ -41,7 +41,13 @@ if [ -f CLAUDE.md ]; then
   raw=$(grep -E "^knowledge-base:" CLAUDE.md | head -1 \
     | sed 's/^knowledge-base://; s/^[[:space:]]*//; s/[[:space:]]*$//')
   if [ -n "$raw" ]; then
-    kb_path=$(eval echo "$raw")
+    # Expand ~ or $HOME prefix only -- never eval
+    # untrusted CLAUDE.md content
+    case "$raw" in
+      '~'|'~/'*) kb_path="$HOME${raw#\~}" ;;
+      '$HOME'*)  kb_path="$HOME${raw#\$HOME}" ;;
+      *)         kb_path="$raw" ;;
+    esac
   fi
 fi
 if [ -z "$kb_path" ]; then

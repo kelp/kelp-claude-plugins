@@ -2,7 +2,7 @@
 name: kb-research-policy
 user-invocable: true
 description: >
-  Routing and retrieval policy for Travis's personal
+  Routing and retrieval policy for your personal
   knowledge base at ~/code/knowledge (or the
   knowledge-base: path in the active project CLAUDE.md).
   Use when the user asks about past research, prior
@@ -51,7 +51,13 @@ if [ -f CLAUDE.md ]; then
   raw=$(grep -E "^knowledge-base:" CLAUDE.md | head -1 \
     | sed 's/^knowledge-base://; s/^[[:space:]]*//; s/[[:space:]]*$//')
   if [ -n "$raw" ]; then
-    kb_path=$(eval echo "$raw")
+    # Expand ~ or $HOME prefix only -- never eval
+    # untrusted CLAUDE.md content
+    case "$raw" in
+      '~'|'~/'*) kb_path="$HOME${raw#\~}" ;;
+      '$HOME'*)  kb_path="$HOME${raw#\$HOME}" ;;
+      *)         kb_path="$raw" ;;
+    esac
   fi
 fi
 if [ -z "$kb_path" ]; then
@@ -127,9 +133,9 @@ mcp__plugin_qmd_qmd__query(
 
 **Collection scoping:**
 
-- `knowledge-wiki` (105 curated notes) — for "what does
-  Travis think / know / have synthesized about X"
-- `knowledge-external` (166 downloaded doc packs) — for
+- `knowledge-wiki` (curated notes) — for "what does
+  the user think / know / have synthesized about X"
+- `knowledge-external` (downloaded doc packs) — for
   "what does the upstream documentation say about X"
 - Use both when the answer might span curated and raw
   reference material
