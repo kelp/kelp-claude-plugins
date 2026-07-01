@@ -46,16 +46,20 @@ persist across fresh conversations.
 
 ## Use
 
-Open a Zig project. The plugin detects `build.zig` (or
-`build.zig.zon`) at the project root and prompts you to
-run `/zig-init`. That command appends corrections to
-your CLAUDE.md. Every agent reads them as project
-context.
+Open a Zig project. The plugin walks up from your working
+directory to find `build.zig` or `build.zig.zon`, injects
+the corrections for that session, and suggests running
+`/zig-claude-kit:zig-init` to persist them. That command
+appends corrections to your CLAUDE.md. Every agent reads
+them as project context.
 
 **Commands:**
-- `/zig-init` -- inject corrections into CLAUDE.md
-- `/zig-patterns` -- quick reference with code examples
-- `/zig-check` -- audit source files for outdated APIs
+- `/zig-claude-kit:zig-init` -- inject corrections into
+  CLAUDE.md
+- `/zig-claude-kit:zig-patterns` -- quick reference with
+  code examples
+- `/zig-claude-kit:zig-check` -- audit source files for
+  outdated APIs
 
 ## Verify
 
@@ -103,7 +107,7 @@ plugin.
 - [Breaking Changes](docs/ZIG_BREAKING_CHANGES.md) --
   full reference with error diagnostics
 - [CLAUDE.md Fragment](docs/claude-md-fragment.md) --
-  corrections appended by `/zig-init`
+  corrections appended by `/zig-claude-kit:zig-init`
 
 ## License
 

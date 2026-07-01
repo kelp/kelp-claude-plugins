@@ -4,6 +4,7 @@ description: >
   CLAUDE.md. Run this in any Zig project to fix Claude's
   outdated patterns for I/O, ArrayList, format strings,
   build.zig, BoundedArray, and usingnamespace.
+user-invocable: true
 ---
 
 # /zig-init
@@ -17,18 +18,22 @@ Add Zig 0.15.x corrections to this project's CLAUDE.md.
 Read the file at
 `${CLAUDE_PLUGIN_ROOT}/docs/claude-md-fragment.md`.
 This contains the Zig 0.15.x training corrections
-formatted as a CLAUDE.md section.
+formatted as a CLAUDE.md section. If the file is missing,
+report the error to the user and stop -- do not proceed.
 
 ### 2. Check current CLAUDE.md
 
 - If no `CLAUDE.md` exists in the project root, create
   one with just a `# CLAUDE.md` header followed by the
   fragment content.
-- If `CLAUDE.md` exists, check if it already contains
-  "Writergate". If so, report "Zig corrections already
+- If `CLAUDE.md` exists, check if it already contains the
+  fragment's first heading, "## Zig 0.15.x Training
+  Corrections". If so, report "Zig corrections already
   present" and stop.
-- If `CLAUDE.md` exists but lacks the corrections,
-  append the fragment content to the end of the file.
+- If `CLAUDE.md` exists but lacks the corrections, append
+  the fragment content to the end of the file. Ensure a
+  blank line separates the existing content from the
+  fragment.
 
 ### 3. Report result
 

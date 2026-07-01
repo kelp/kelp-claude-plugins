@@ -293,6 +293,37 @@ try std.testing.expectEqualStrings(expected, actual);
 2. For mixins: zero-bit fields with `@fieldParentPtr`
 3. For implementation switching: conditional public decls
 
+```zig
+// WRONG (your training): conditional inclusion
+const Platform = struct {
+    pub usingnamespace if (is_linux) LinuxImpl else DarwinImpl;
+};
+
+// RIGHT (Zig 0.15.x): compile-time conditional decl
+const Platform = struct {
+    pub const impl = if (is_linux) LinuxImpl else DarwinImpl;
+};
+// Usage: Platform.impl.read(...)
+```
+
+```zig
+// WRONG (your training): implementation switching
+const Logger = struct {
+    pub usingnamespace switch (build_mode) {
+        .debug => DebugLogger,
+        .release => ReleaseLogger,
+    };
+};
+
+// RIGHT (Zig 0.15.x): conditional public decl, called
+// explicitly instead of merged into the namespace
+const Logger = switch (build_mode) {
+    .debug => DebugLogger,
+    .release => ReleaseLogger,
+};
+// Usage: Logger.log(...)
+```
+
 ### Format String Migration
 1. Replace `{}` with explicit format specifiers
 2. Use `{f}` to explicitly call format methods

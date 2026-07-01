@@ -11,9 +11,9 @@ argument-hint: "[file]"
 # /zig-check [file]
 
 Audit Zig source files for common Zig 0.15.x mistakes. If a file
-path is given, check that file. Otherwise check all `src/*.zig`
-files that were modified in the current git diff (staged and
-unstaged).
+path is given, check that file. Otherwise check all `*.zig`
+files, in any directory, that were modified in the current git
+diff (staged and unstaged).
 
 ## Procedure
 
@@ -24,7 +24,7 @@ If argument provided:
 
 If no argument:
 - Run `git diff --name-only` and `git diff --cached --name-only`
-- Filter to `src/*.zig` files
+- Filter to `*.zig` files, recursively, regardless of directory
 - If no modified Zig files, report "No modified Zig files to
   check" and exit
 
@@ -111,7 +111,7 @@ All files pass. No Zig 0.15.x issues found.
 For each critical issue, include a one-line fix suggestion:
 
 - "Replace `std.io.getStdOut()` with buffered writer pattern
-  (see zig-patterns skill)"
+  (see /zig-claude-kit:zig-patterns)"
 - "Replace `while (reader.takeDelimiterExclusive(...))` with
   `reader.appendRemaining()`"
 - "Add `defer stdout.flush() catch {};` after writer creation"

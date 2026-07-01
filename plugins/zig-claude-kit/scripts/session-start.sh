@@ -2,15 +2,28 @@
 # Detect Zig projects missing 0.15.x corrections.
 # Runs at Claude Code session start via plugin hook.
 
-# Only act in actual Zig projects -- build.zig or
-# build.zig.zon at the project root. Stray .zig files
-# alone do not qualify.
-if [ ! -f "build.zig" ] && [ ! -f "build.zig.zon" ]; then
+# Walk upward from cwd to find the nearest directory
+# containing build.zig or build.zig.zon. Stray .zig files
+# alone do not qualify, and a project root above cwd (e.g.
+# when Claude starts in a subdirectory) still counts.
+project_root=""
+dir="$PWD"
+while [ "$dir" != "/" ]; do
+  if [ -f "$dir/build.zig" ] || [ -f "$dir/build.zig.zon" ]; then
+    project_root="$dir"
+    break
+  fi
+  dir="$(dirname "$dir")"
+done
+
+if [ -z "$project_root" ]; then
   exit 0
 fi
 
-# Check if corrections already present
-if grep -q "Writergate" CLAUDE.md 2>/dev/null; then
+# Check if corrections already present, anchored to the
+# fragment's own heading so unrelated mentions don't count.
+if grep -q "^## Zig 0.15.x Training Corrections" \
+    "$project_root/CLAUDE.md" 2>/dev/null; then
   exit 0
 fi
 
@@ -22,20 +35,11 @@ if [ -f "$FRAGMENT" ]; then
   echo ""
 fi
 
-# Instruct Claude to alert the user immediately
+# Advise the user; corrections above already apply to this
+# session regardless.
 cat <<'INSTRUCTIONS'
-BLOCKING: This Zig project has no training corrections in
-CLAUDE.md. You WILL generate broken code without them.
-
-Before responding to ANY user request — including /init,
-/commit, or any other command — you MUST first tell the
-user:
-
-"This Zig project needs 0.15.x training corrections.
-Please run /zig-claude-kit:zig-init before we continue."
-
-Do NOT proceed with other work until the user has run
-/zig-claude-kit:zig-init or explicitly declined. The corrections above
-cover this session only and will be lost when it ends.
+The corrections above cover this session only. Run
+/zig-claude-kit:zig-init to add them to CLAUDE.md so future
+sessions get them automatically.
 INSTRUCTIONS
 exit 0
