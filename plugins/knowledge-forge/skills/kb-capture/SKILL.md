@@ -32,41 +32,16 @@ Scope: $ARGUMENTS
 
 ## Step 1: Resolve the KB path
 
-Run this shell block first. Every subsequent command uses
-`"$kb_path"` (double-quoted).
+Run `${CLAUDE_PLUGIN_ROOT}/scripts/resolve-kb-path.sh` and
+capture its stdout as `kb_path`. Every subsequent command
+uses `"$kb_path"` (double-quoted).
 
 ```bash
-kb_path=""
-if [ -f CLAUDE.md ]; then
-  raw=$(grep -E "^knowledge-base:" CLAUDE.md | head -1 \
-    | sed 's/^knowledge-base://; s/^[[:space:]]*//; s/[[:space:]]*$//')
-  if [ -n "$raw" ]; then
-    # Expand ~ or $HOME prefix only -- never eval
-    # untrusted CLAUDE.md content
-    case "$raw" in
-      '~'|'~/'*) kb_path="$HOME${raw#\~}" ;;
-      '$HOME'*)  kb_path="$HOME${raw#\$HOME}" ;;
-      *)         kb_path="$raw" ;;
-    esac
-  fi
-fi
-if [ -z "$kb_path" ]; then
-  kb_path="$HOME/code/knowledge"
-fi
-kb_path=$(realpath "$kb_path" 2>/dev/null) || {
-  echo "knowledge-forge: cannot resolve KB path" >&2
-  exit 1
-}
-case "$kb_path" in
-  *$'\n'*|*$'\r'*|*$'\0'*|*\\*)
-    echo "knowledge-forge: invalid characters in KB path" >&2
-    exit 1 ;;
-esac
-if [ ! -f "$kb_path/justfile" ] || [ ! -d "$kb_path/index" ]; then
-  echo "knowledge-forge: $kb_path is not a knowledge base" >&2
-  exit 1
-fi
+kb_path=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-kb-path.sh")
 ```
+
+If the script exits non-zero, relay its stderr message to
+the user verbatim and stop — do not guess a fallback path.
 
 ---
 
@@ -89,6 +64,18 @@ Source notes require `raw_path` (a file that already
 exists under `<kb>/raw/`) and `url`. Do not classify
 as `source` if you are not capturing a specific artifact
 with a known raw file.
+
+To capture an external URL as a proper source note (with
+a `raw_path` that exists on disk), run `/kb-ingest` first;
+capturing a URL directly here without an ingested raw file
+produces a `report`, not a `source`.
+
+The `projects/`, `playbooks/`, and `dependencies/` wiki
+buckets are out of scope for `/kb-capture` — file notes in
+those buckets manually. This does not affect playbook-type
+*concept* notes: those are still captured as `concept` (see
+Step 9's `index/playbooks.md` entry), since "playbook" is a
+tag on a concept note, not a separate capture target.
 
 ---
 
@@ -116,7 +103,10 @@ today=$(date +%Y-%m-%d)
 
 Read existing note IDs from the relevant index files
 before writing `sources:`. Use only IDs you can confirm
-exist — the linter rejects invented IDs.
+exist. This check here is a soft one — the index files can
+lag actual notes. `just lint` in Step 7 is the actual
+enforcement; it rejects invented IDs against the real
+note set.
 
 ```bash
 cat "$kb_path/index/sources.md"
@@ -162,9 +152,12 @@ Field rules:
 ## Step 5: Draft the body
 
 Use the matching template from `<kb>/templates/` as
-the structural skeleton.
+the structural skeleton. The KB's template file is
+authoritative; the skeletons below are a fallback for
+when the template file is missing.
 
-**Source note sections** (`templates/source-note.md`):
+**Source note sections** (`templates/source-note.md`,
+fallback if missing):
 
 ```
 ## Abstract
@@ -175,7 +168,8 @@ the structural skeleton.
 ## Related concepts
 ```
 
-**Concept note sections** (`templates/concept-note.md`):
+**Concept note sections** (`templates/concept-note.md`,
+fallback if missing):
 
 ```
 ## Summary

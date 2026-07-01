@@ -42,41 +42,16 @@ and `<kb>/AGENTS.md` directly.
 
 ## Step 1: Resolve the KB path
 
-Run this shell block. Every subsequent command uses
-`"$kb_path"` (double-quoted).
+Run `${CLAUDE_PLUGIN_ROOT}/scripts/resolve-kb-path.sh` and
+capture its stdout as `kb_path`. Every subsequent command
+uses `"$kb_path"` (double-quoted).
 
 ```bash
-kb_path=""
-if [ -f CLAUDE.md ]; then
-  raw=$(grep -E "^knowledge-base:" CLAUDE.md | head -1 \
-    | sed 's/^knowledge-base://; s/^[[:space:]]*//; s/[[:space:]]*$//')
-  if [ -n "$raw" ]; then
-    # Expand ~ or $HOME prefix only -- never eval
-    # untrusted CLAUDE.md content
-    case "$raw" in
-      '~'|'~/'*) kb_path="$HOME${raw#\~}" ;;
-      '$HOME'*)  kb_path="$HOME${raw#\$HOME}" ;;
-      *)         kb_path="$raw" ;;
-    esac
-  fi
-fi
-if [ -z "$kb_path" ]; then
-  kb_path="$HOME/code/knowledge"
-fi
-kb_path=$(realpath "$kb_path" 2>/dev/null) || {
-  echo "knowledge-forge: cannot resolve KB path" >&2
-  exit 1
-}
-case "$kb_path" in
-  *$'\n'*|*$'\r'*|*$'\0'*|*\\*)
-    echo "knowledge-forge: invalid characters in KB path" >&2
-    exit 1 ;;
-esac
-if [ ! -f "$kb_path/justfile" ] || [ ! -d "$kb_path/index" ]; then
-  echo "knowledge-forge: $kb_path is not a knowledge base" >&2
-  exit 1
-fi
+kb_path=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-kb-path.sh")
 ```
+
+If the script exits non-zero, relay its stderr message to
+the user verbatim and stop — do not guess a fallback path.
 
 ---
 
@@ -98,8 +73,16 @@ Current index files under `<kb>/index/`:
 - `freshness.md` — last updated_at per external source (AUTO-GENERATED)
 - `authoritative-files.md` — canonical file references
 
+If a listed index file does not exist, skip it silently.
+Not every KB populates every bucket.
+
 After reading the relevant index files, you should have
-a shortlist of candidate note IDs.
+a shortlist of candidate note IDs. If the index alone
+gives a confident, complete answer, you may skip Step 3
+and answer directly. Otherwise proceed to Step 3 — the
+hand-maintained index can lag actual note content, so a
+thin or stale-looking index entry is not itself a
+complete answer.
 
 ---
 
@@ -133,15 +116,18 @@ mcp__plugin_qmd_qmd__query(
 
 **Collection scoping:**
 
-- `knowledge-wiki` (curated notes) — for "what does
-  the user think / know / have synthesized about X"
-- `knowledge-external` (downloaded doc packs) — for
-  "what does the upstream documentation say about X"
-- Use both when the answer might span curated and raw
-  reference material
+- Query both `knowledge-wiki` and `knowledge-external` by
+  default — most questions can draw on either.
+- Restrict to `knowledge-external` only when the user
+  explicitly asks what the docs say (upstream
+  documentation only, not Travis's own notes).
+- Restrict to `knowledge-wiki` only when the user
+  explicitly asks what they themselves have concluded
+  (their synthesis only, not raw upstream docs).
 
 **Filter low-confidence results** with `minScore: 0.5`
-when results are noisy.
+when results are noisy. Treat 0.5 as a starting heuristic,
+not a fixed constant — adjust it as the corpus grows.
 
 ---
 

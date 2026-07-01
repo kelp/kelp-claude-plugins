@@ -46,41 +46,16 @@ Two forms:
 
 ## Step 1: Resolve the KB path
 
-Run this shell block first. Every subsequent command uses
-`"$kb_path"` (double-quoted).
+Run `${CLAUDE_PLUGIN_ROOT}/scripts/resolve-kb-path.sh` and
+capture its stdout as `kb_path`. Every subsequent command
+uses `"$kb_path"` (double-quoted).
 
 ```bash
-kb_path=""
-if [ -f CLAUDE.md ]; then
-  raw=$(grep -E "^knowledge-base:" CLAUDE.md | head -1 \
-    | sed 's/^knowledge-base://; s/^[[:space:]]*//; s/[[:space:]]*$//')
-  if [ -n "$raw" ]; then
-    # Expand ~ or $HOME prefix only -- never eval
-    # untrusted CLAUDE.md content
-    case "$raw" in
-      '~'|'~/'*) kb_path="$HOME${raw#\~}" ;;
-      '$HOME'*)  kb_path="$HOME${raw#\$HOME}" ;;
-      *)         kb_path="$raw" ;;
-    esac
-  fi
-fi
-if [ -z "$kb_path" ]; then
-  kb_path="$HOME/code/knowledge"
-fi
-kb_path=$(realpath "$kb_path" 2>/dev/null) || {
-  echo "knowledge-forge: cannot resolve KB path" >&2
-  exit 1
-}
-case "$kb_path" in
-  *$'\n'*|*$'\r'*|*$'\0'*|*\\*)
-    echo "knowledge-forge: invalid characters in KB path" >&2
-    exit 1 ;;
-esac
-if [ ! -f "$kb_path/justfile" ] || [ ! -d "$kb_path/index" ]; then
-  echo "knowledge-forge: $kb_path is not a knowledge base" >&2
-  exit 1
-fi
+kb_path=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-kb-path.sh")
 ```
+
+If the script exits non-zero, relay its stderr message to
+the user verbatim and stop — do not guess a fallback path.
 
 ---
 
@@ -117,6 +92,9 @@ AskUserQuestion once:
 > `<domain>`? (e.g. `providers fastmail`,
 > `tooling uv`, `protocols jmap`)"
 
+If you had to ask, suggest the user add a row to the
+domain table above for next time.
+
 Default `version` to `latest` if omitted.
 Default `selector` to `main` if omitted.
 Default `path_prefix` to `""` (empty) if omitted.
@@ -133,8 +111,13 @@ if [ -d "$pack_dir" ]; then
 fi
 ```
 
-Warn and proceed. Re-ingest is safe; it overwrites
-existing crawled files in place.
+If the pack directory exists, read its
+`"$pack_dir/MANIFEST.md"` before overwriting. If its
+`status:` field is `stable`, use AskUserQuestion to
+confirm with the user before proceeding — a stable pack
+has been reviewed and re-ingesting silently could discard
+that review. Auto-proceed without asking when `status` is
+`fresh`, or when MANIFEST.md does not exist.
 
 ---
 
@@ -150,9 +133,12 @@ cd "$kb_path" && just ingest-pack \
 ```
 
 If the crawl produces no files (or only tiny stubs),
-the site likely requires JS rendering. Try a different
-CSS selector (e.g. `article`, `.content`, `body`) or
-report to the user.
+the site likely requires JS rendering, or the selector
+did not match. Retry with the next selector in this fixed
+order, stopping at the first one that produces real
+content: `main` → `article` → `.content` → `body`. If all
+four fail, stop and report the failure to the user with
+the selectors you tried.
 
 **Local mode** — copy from the existing directory:
 
@@ -265,7 +251,9 @@ Use the compact format of existing external source
 notes (see `wiki/sources/external/source-github-cli-
 latest.md` for the pattern). Do not use the full
 source-note template sections (Abstract, Key claims,
-etc.).
+etc.). If that file does not exist in this KB, use any
+existing file under `wiki/sources/external/` as the
+pattern reference instead.
 
 ---
 

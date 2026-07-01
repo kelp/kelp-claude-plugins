@@ -7,11 +7,13 @@ session.
 ## What it does
 
 **Cross-session discoverability** — the `kb-research-
-policy` skill is auto-discovered at every session start.
-When you ask "what do I know about X" or "check my
-notes on Y", Claude follows a standard index-first
-retrieval procedure using the qmd MCP server instead of
-guessing or opening files blindly.
+policy` skill is matched on demand via its description
+when a research question arises, from any session. When
+you ask "what do I know about X" or "check my notes on
+Y", Claude follows a standard index-first retrieval
+procedure using the qmd MCP server instead of guessing or
+opening files blindly. You can also invoke it directly
+with `/kb-research-policy`.
 
 **Guided capture** — `/kb-capture` files content into
 the right wiki bucket with correct frontmatter, today's
@@ -52,11 +54,13 @@ See `docs/claude-md-fragment.md` for the full snippet.
 
 ## Skills
 
-### kb-research-policy (auto-discovered)
+### kb-research-policy
 
-Loaded every session. Teaches the four-step retrieval
-procedure: resolve path → read index/ → search via qmd
-MCP → open full notes only after shortlisting.
+Matched on demand via its description when research
+questions arise; also invocable directly. Teaches the
+four-step retrieval procedure: resolve path → read
+index/ → search via qmd MCP → open full notes only
+after shortlisting.
 
 ### /kb-capture
 
