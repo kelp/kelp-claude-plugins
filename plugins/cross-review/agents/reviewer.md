@@ -53,6 +53,8 @@ findings.
 
 ## Output Format
 
+<!-- keep in sync with docs/codex-finding-schema.md -->
+
 Return findings in this exact schema. Each finding
 must fill every field.
 

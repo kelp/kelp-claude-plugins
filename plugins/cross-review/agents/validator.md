@@ -49,6 +49,8 @@ For each finding in the list provided:
 
 ## Output Format
 
+<!-- keep in sync with docs/codex-finding-schema.md -->
+
 Return each finding with STATUS and NOTES appended.
 Keep the original finding fields unchanged.
 
