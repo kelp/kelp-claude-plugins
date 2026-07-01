@@ -351,7 +351,7 @@ environment configurations contributors need to know.
 Be explicit. Minimize dependence on the compiler doing
 the right thing for you implicitly.
 
-## Quick Reference: What `/tiger-check` Catches
+## Quick Reference: What `/tiger-style:tiger-check` Catches
 
 The audit skill is mechanical — it can't judge naming
 or simplicity. It does catch:

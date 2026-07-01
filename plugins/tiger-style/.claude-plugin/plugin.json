@@ -1,7 +1,7 @@
 {
   "name": "tiger-style",
   "description": "TigerBeetle's Tiger Style methodology for Zig: assertions (2+ per fn, paired positive/negative space), bounded loops (no recursion), static memory after init, snake_case naming with unit suffixes, 70-line function limit, 100-column line limit, and zig fmt.",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "author": {
     "name": "Travis Cole"
   },

@@ -6,6 +6,7 @@ description: >
   naming with unit suffixes, 70-line function limit,
   100-column line limit, zig fmt. Use when writing or
   reviewing Zig in a project that follows Tiger Style.
+user-invocable: true
 ---
 
 # Tiger Style -- Quick Reference

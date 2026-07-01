@@ -15,8 +15,11 @@ violations. If a file path is given, check that file.
 Otherwise check all `*.zig` files that were modified in
 the current git diff (staged and unstaged).
 
-Only mechanical, statically-detectable rules are
-covered. Subjective rules (naming quality, prose,
+Only mechanical rules are covered, checked by reading the
+file rather than by a parser -- the function-length and
+compound-assertion checks approximate brace and expression
+matching, so treat their output as a strong signal, not a
+guarantee. Subjective rules (naming quality, prose,
 "simplicity") are not. For those, lean on the patterns
 in `${CLAUDE_PLUGIN_ROOT}/docs/TIGER_STYLE_REFERENCE.md`.
 
@@ -48,9 +51,11 @@ for function-length), and a one-line fix suggestion.
 #### Check 1: Function length > 70 lines
 
 For each function definition (`fn name(...)` or
-`pub fn name(...)`), measure from the opening `{` line
-through the matching closing `}`. If the body spans
-more than 70 lines (closing line minus opening line
+`pub fn name(...)`), find the matching closing `}` for
+its opening `{` by reading the file and tracking brace
+depth (this is an approximation, not a parse -- watch for
+braces inside string literals and comments). If the body
+spans more than 70 lines (closing line minus opening line
 > 70), flag it.
 
 Report: `WARN: <start>-<end>: function '<name>' is <N>
@@ -120,7 +125,9 @@ Fix: "Convert to iteration with a bounded stack
 
 Grep for `assert(` calls whose argument contains a
 top-level ` and ` or ` or ` (outside nested
-parentheses or string literals). Flag each.
+parentheses or string literals -- reading the surrounding
+code to judge nesting, since this is not a real parse).
+Flag each.
 
 Report: `WARN: <line>: compound assertion -- split into
 separate asserts for clearer failure messages`.
@@ -133,8 +140,10 @@ Fix: "Replace `assert(a and b);` with `assert(a);` and
 For each `while (true)` (and equivalent like
 `while (true) : ()`), read the loop body. If the body
 does not contain at least one `assert(` call within
-the loop's direct scope (not inside a deeply nested
-function), flag it.
+the loop's direct scope, flag it. Direct scope means the
+loop's own body, not the body of a function the loop
+calls -- an `assert(` inside a helper invoked from the
+loop does not satisfy the check.
 
 Report: `WARN: <line>: 'while (true)' without an
 assertion in the loop body; non-terminating loops

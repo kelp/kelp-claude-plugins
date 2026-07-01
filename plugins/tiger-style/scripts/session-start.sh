@@ -2,16 +2,29 @@
 # Detect Zig projects without Tiger Style guidance.
 # Runs at Claude Code session start via plugin hook.
 
-# Only act in actual Zig projects -- build.zig or
-# build.zig.zon at the project root. Stray .zig files
-# alone do not qualify.
-if [ ! -f "build.zig" ] && [ ! -f "build.zig.zon" ]; then
+# Walk upward from cwd to find the project root -- the
+# nearest directory containing build.zig or
+# build.zig.zon. Stray .zig files alone do not qualify.
+dir="$PWD"
+project_root=""
+while true; do
+  if [ -f "$dir/build.zig" ] || [ -f "$dir/build.zig.zon" ]; then
+    project_root="$dir"
+    break
+  fi
+  if [ "$dir" = "/" ]; then
+    break
+  fi
+  dir="$(dirname "$dir")"
+done
+
+if [ -z "$project_root" ]; then
   exit 0
 fi
 
 # Check if Tiger Style guidance already present.
 # Match the fragment heading, not any prose mention.
-if grep -q "## Tiger Style" CLAUDE.md 2>/dev/null; then
+if grep -q "## Tiger Style" "$project_root/CLAUDE.md" 2>/dev/null; then
   exit 0
 fi
 
@@ -23,23 +36,12 @@ if [ -f "$FRAGMENT" ]; then
   echo ""
 fi
 
-# Instruct Claude to alert the user immediately
+# Advisory only -- the guidance above already covers this
+# session. Never block on it.
 cat <<'INSTRUCTIONS'
-BLOCKING: This Zig project has no Tiger Style guidance in
-CLAUDE.md. The tiger-style plugin is installed, so this
-project is expected to follow TigerBeetle's coding style.
-
-Before responding to ANY user request -- including /init,
-/commit, or any other command -- you MUST first tell the
-user:
-
-"This Zig project needs Tiger Style guidance installed.
-Please run /tiger-style:tiger-init before we continue, or
-uninstall the tiger-style plugin if this project should
-not follow Tiger Style."
-
-Do NOT proceed with other work until the user has run
-/tiger-style:tiger-init or explicitly declined. The guidance above
-covers this session only and will be lost when it ends.
+The guidance above covers this session only and will be
+lost when it ends. Run /tiger-style:tiger-init to persist
+it into this project's CLAUDE.md. If this project should
+not follow Tiger Style, uninstall the tiger-style plugin.
 INSTRUCTIONS
 exit 0

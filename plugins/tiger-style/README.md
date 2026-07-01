@@ -56,24 +56,24 @@ follows the same rules.
 
 Open any Zig project. The plugin detects `build.zig`
 (or `build.zig.zon`) at the project root and prompts
-you to run `/tiger-init`. That command appends Tiger
+you to run `/tiger-style:tiger-init`. That command appends Tiger
 Style guidance to your CLAUDE.md. Every agent reads it
 as project context.
 
 **Commands:**
 
-- `/tiger-init` -- inject Tiger Style into CLAUDE.md
-- `/tiger-patterns` -- quick reference with code
+- `/tiger-style:tiger-init` -- inject Tiger Style into CLAUDE.md
+- `/tiger-style:tiger-patterns` -- quick reference with code
   examples (auto-discovered)
-- `/tiger-check [file]` -- audit Zig files for
+- `/tiger-style:tiger-check [file]` -- audit Zig files for
   mechanical violations
 
-If you install this plugin into a Zig project where you
-do NOT want Tiger Style, uninstall the plugin -- the
-session-start hook will prompt for installation in every
-Zig project until you opt out.
+The session-start hook reminds you once per session in
+any Zig project lacking Tiger Style guidance; it does not
+block your request. If you never want the reminder,
+uninstall the plugin.
 
-## What `/tiger-check` Catches
+## What `/tiger-style:tiger-check` Catches
 
 Mechanical rules only:
 
@@ -90,7 +90,7 @@ audited -- read the reference doc for those.
 ## Reference
 
 - [CLAUDE.md Fragment](docs/claude-md-fragment.md) --
-  what `/tiger-init` appends to your project's CLAUDE.md
+  what `/tiger-style:tiger-init` appends to your project's CLAUDE.md
 - [Full Reference](docs/TIGER_STYLE_REFERENCE.md) --
   long-form with rationale and examples
 - [Upstream TIGER_STYLE.md][up] -- TigerBeetle's
