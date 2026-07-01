@@ -62,6 +62,8 @@ Read the project's CLAUDE.md for:
 
 ---
 
+<!-- Keep this section in sync with test-writer.md's Agent Briefing. -->
+
 ## Agent Briefing
 
 Read this entire section before writing any code.

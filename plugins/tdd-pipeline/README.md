@@ -11,17 +11,10 @@ The orchestrator -- your main Claude session --
 dispatches agents and reads only CLAUDE.md. It never
 writes source or test files itself.
 
-**Full pipeline** (new modules, ≥3 behaviors):
-
-```
-1. Test Writer    write tests + type stubs (RED)
-2. Test Reviewer  review tests, fix loop
-3. Red Gate       confirm all tests fail against stubs
-4. Implementer    write code to pass tests (GREEN)
-5. Verify Gate    tests pass, no stubs, lint clean
-6. Code Reviewer  review implementation, fix loop
-7. Integrate      update build files, full tests, commit
-```
+**Full pipeline** (new modules, ≥3 behaviors): seven
+stages from test-writing through integration. See
+[Methodology](docs/methodology.md) for the stage
+diagram.
 
 **Inline fast-track** (bug fixes, small changes):
 
@@ -89,12 +82,18 @@ CLAUDE.md is the only integration point between plugins.
 - `tdd-orchestrate` -- drive the 7-stage pipeline
 - `tdd-init` -- add config template to CLAUDE.md
 
-**Agent roles** (injected into sub-agent prompts):
+**Agent roles** (persistent role definitions, dispatched
+via subagent_type):
 - `test-writer` -- write tests and type stubs
 - `test-reviewer` -- review tests for correctness
 - `implementer` -- write implementation code
 - `code-reviewer` -- review implementation
-- `agent-briefing` -- common rules for all agents
+
+Each agent role file carries its own "Agent Briefing"
+section (file rules, shell rules, quality bar). There is
+no separate shared briefing skill; test-writer.md and
+implementer.md keep their briefing blocks in sync
+manually.
 
 ## Reference
 

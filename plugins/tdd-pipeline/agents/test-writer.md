@@ -30,7 +30,10 @@ The orchestrator provides:
 ## What You Produce
 
 A complete test file that:
-- Has one test per behavior (minimum)
+- Has one test per behavior (minimum) -- "behavior"
+  means one item in the orchestrator's behavior list for
+  this task; implement exactly those, not fewer, no
+  invented extras
 - Uses descriptive test names matching behavior text
 - Tests edge cases and error paths
 - Imports the module under test by name
@@ -85,6 +88,8 @@ Read the project's CLAUDE.md for:
 
 ---
 
+<!-- Keep this section in sync with implementer.md's Agent Briefing. -->
+
 ## Agent Briefing
 
 Read this entire section before writing any code.
@@ -105,7 +110,9 @@ and patterns (e.g. `src/{module}.py`,
 
 Complete ALL listed behaviors. Partial work will be
 rejected.
-- One test per behavior minimum
+- One test per behavior minimum -- one test per item in
+  the orchestrator's behavior list, not fewer, no
+  invented extras
 - Stubs return trivial values only
 
 Every public function must have at least one test

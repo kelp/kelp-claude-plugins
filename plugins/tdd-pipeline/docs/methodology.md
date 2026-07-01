@@ -64,20 +64,24 @@ for truthy/non-zero results.
 
 ## Skills Reference
 
-Each pipeline stage has a corresponding skill:
+Each pipeline stage dispatches a corresponding agent
+type:
 
-| Stage | Skill | Agent Type | Writes |
-|-------|-------|------------|--------|
-| 1. Tests + stubs | test-writer | programmer | test + stub files |
-| 2. Test review | test-reviewer | reviewer | nothing |
-| 3. Red gate | (orchestrator) | -- | nothing |
-| 4. Implement | implementer | programmer | source files |
-| 5. Verify gate | (orchestrator) | -- | nothing |
-| 6. Code review | code-reviewer | reviewer | nothing |
-| 7. Integrate | (orchestrator) | -- | commit |
+| Stage | Agent Type | Writes |
+|-------|------------|--------|
+| 1. Tests + stubs | tdd-pipeline:test-writer | test + stub files |
+| 2. Test review | tdd-pipeline:test-reviewer | nothing |
+| 3. Red gate | (orchestrator) | nothing |
+| 4. Implement | tdd-pipeline:implementer | source files |
+| 5. Verify gate | (orchestrator) | nothing |
+| 6. Code review | tdd-pipeline:code-reviewer | nothing |
+| 7. Integrate | (orchestrator) | commit |
 
-Common briefing for all agents: `agent-briefing` skill
-(file rules, shell rules, quality bar).
+There is no separate shared briefing skill. Each
+agent's own "Agent Briefing" section (file rules, shell
+rules, quality bar) is defined directly in
+test-writer.md and implementer.md, which keep those
+blocks in sync manually.
 
 ## Orchestrator Rules
 
@@ -135,8 +139,9 @@ After code reviewer approves:
 Both review stages use a fix loop:
 
 1. Reviewer reports NEEDS_FIXES with structured issues
-2. Orchestrator dispatches a fix agent (programmer type)
-   with the reviewer's feedback
+2. Orchestrator re-engages the original author agent
+   (test-writer or implementer) with the reviewer's
+   feedback, via SendMessage
 3. Reviewer re-reviews
 4. Maximum 3 rounds -- then escalate to user
 

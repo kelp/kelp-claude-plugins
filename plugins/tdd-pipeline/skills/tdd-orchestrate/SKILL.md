@@ -44,6 +44,14 @@ inherits the session model.
 
 ## Decide: Pipeline or Inline
 
+A **behavior** is one discrete, independently testable
+unit of functionality the module must exhibit (e.g. "the
+parser rejects an empty string," "the cache evicts the
+oldest entry"). Every later reference to "behavior" in
+this skill and in the agent role files means this
+definition — one item in the orchestrator's enumerated
+behavior list for the task.
+
 **Use the full pipeline** (see "Pipeline" section) when:
 - Building a new module from scratch
 - The task has 3+ distinct behaviors to implement
@@ -56,9 +64,17 @@ inherits the session model.
 - The change touches 1-2 files
 
 Most tasks are inline. Default to inline unless the
-scope clearly warrants the full pipeline.
+scope clearly warrants the full pipeline. **Precedence:
+if any full-pipeline criterion applies, use the full
+pipeline regardless of the file-count heuristic** — a
+new module that happens to fit in one file is still a
+full-pipeline task.
 
 ## Inline Red-Green-Refactor
+
+**Precondition**: read the project's CLAUDE.md. If it
+has no `## TDD Pipeline Configuration` section, stop and
+tell the user to run `/tdd-pipeline:tdd-init` first.
 
 Inline uses two agents and two commits. It skips the
 reviewer stages and the stub/RED-gate dance, because
@@ -110,6 +126,12 @@ specific input that should produce a non-default result.
 **The test must fail for the RIGHT reason.** A compile
 error is not a valid red state — surface it and ask the
 test-writer to fix the stubs.
+
+**Cap re-dispatches.** If the RED gate fails twice in a
+row for the same reason, do not re-dispatch a third
+time. Stop. Report to the user: the module, the stage,
+all rejection reasons from every round verbatim, and ask
+whether to continue manually or change approach.
 
 ### Step 3: GREEN — Dispatch implementer
 
@@ -180,6 +202,9 @@ the code actually checks.
 available and fast, call it. Mocks diverge from
 production and hide bugs.
 
+See also "Common Mistakes" above — it applies to the
+full pipeline too, not just inline.
+
 ---
 
 ## Full Pipeline
@@ -188,10 +213,15 @@ Use this section when the routing decision above chose
 the full pipeline. For inline tasks, ignore everything
 below.
 
+**Precondition**: read the project's CLAUDE.md. If it
+has no `## TDD Pipeline Configuration` section, stop and
+tell the user to run `/tdd-pipeline:tdd-init` first.
+
 ### Pipeline Input
 
 If the task specifies a module name, use it. Otherwise,
-ask the user for the module name and behavior list.
+ask the user for the module name and behavior list (see
+the behavior definition in "Decide: Pipeline or Inline").
 
 Example: `/tdd-orchestrate parser`
 
@@ -348,13 +378,21 @@ Read the project's CLAUDE.md for test commands, file
 paths, and language-specific context. Every value
 below marked with `(CLAUDE.md)` must come from there.
 
+**Stage tracker**: before each agent dispatch below,
+state which stage you are starting (e.g. "Stage 3: Red
+Gate"). A resumed or compacted session can then recover
+its place from the transcript alone.
+
 ### Stage 1: Test Writer
 
-Dispatch `subagent_type: tdd-pipeline:test-writer`
-with:
+Announce "Stage 1: Test Writer." Dispatch
+`subagent_type: tdd-pipeline:test-writer` with:
 - Module name and behavior list
 - Type signatures and dependency APIs
 - Test command (CLAUDE.md)
+
+Pass `model:` if the task carried a `--model` flag (see
+"Model").
 
 The agent writes the test file and type stubs to the
 source file path (CLAUDE.md). Stubs contain only
@@ -362,22 +400,31 @@ signatures -- no real logic.
 
 ### Stage 2: Test Reviewer
 
-Dispatch `subagent_type: tdd-pipeline:test-reviewer`
-with:
+Announce "Stage 2: Test Reviewer." Dispatch
+`subagent_type: tdd-pipeline:test-reviewer` with:
 - Module name and behavior list
 - The test file path
 
-**Fix loop**: if NEEDS_FIXES, use **SendMessage** to
-continue the original test-writer agent with the
-reviewer's feedback as the fix list (see "Continuation
-Strategy"). The writer already has the design and file
-context — a fresh dispatch re-pays that cost. Then
-re-dispatch the test-reviewer (clean perspective on the
-fixed tests). Max 3 rounds, then escalate to user.
+Pass `model:` if the task carried a `--model` flag.
+
+**Fix loop**: before each re-dispatch, create or update
+a TodoWrite item, e.g. "Test review round 2/3," so the
+round count stays visible. If NEEDS_FIXES, use
+**SendMessage** to continue the original test-writer
+agent with the reviewer's feedback as the fix list (see
+"Continuation Strategy"). The writer already has the
+design and file context — a fresh dispatch re-pays that
+cost. Then re-dispatch the test-reviewer (clean
+perspective on the fixed tests). Maximum 3 rounds; on
+the 3rd rejection, stop. Report to the user: the module,
+the stage, all rejection reasons from every round
+verbatim, and ask whether to continue manually or change
+approach.
 
 ### Stage 3: Red Gate
 
-Run the module test command (CLAUDE.md).
+Announce "Stage 3: Red Gate." Run the module test
+command (CLAUDE.md).
 
 - Tests must COMPILE and all must FAIL at runtime.
 - A compile error is NOT a pass -- re-dispatch the
@@ -390,18 +437,21 @@ Only proceed when tests compile and all fail.
 
 ### Stage 4: Implementer
 
-Dispatch `subagent_type: tdd-pipeline:implementer`
-with:
+Announce "Stage 4: Implementer." Dispatch
+`subagent_type: tdd-pipeline:implementer` with:
 - Module name and behavior list
 - Type signatures and dependency APIs
 - Test command (CLAUDE.md)
+
+Pass `model:` if the task carried a `--model` flag.
 
 The agent replaces the stub source file with the
 real implementation to make all tests pass.
 
 ### Stage 5: Verify Gate
 
-Run these checks yourself (do NOT dispatch an agent):
+Announce "Stage 5: Verify Gate." Run these checks
+yourself (do NOT dispatch an agent):
 
 1. Module test command passes (CLAUDE.md)
 2. Source file > 30 lines (catches stubs -- adjust
@@ -417,23 +467,31 @@ one that just finished still has the file loaded.
 
 ### Stage 6: Code Reviewer
 
-Dispatch `subagent_type: tdd-pipeline:code-reviewer`
-with:
+Announce "Stage 6: Code Reviewer." Dispatch
+`subagent_type: tdd-pipeline:code-reviewer` with:
 - Module name and behavior list
 - Source and test file paths
 
-**Fix loop**: if NEEDS_FIXES, use **SendMessage** to
-continue the original implementer agent with the
-reviewer's feedback as the fix list (see "Continuation
-Strategy"). The implementer already has the test file
-and implementation context loaded — a fresh dispatch
-re-pays that cost. Then re-dispatch the code-reviewer
-(clean perspective on the fixed code). Max 3 rounds,
-then escalate to user.
+Pass `model:` if the task carried a `--model` flag.
+
+**Fix loop**: before each re-dispatch, create or update
+a TodoWrite item, e.g. "Code review round 2/3," so the
+round count stays visible. If NEEDS_FIXES, use
+**SendMessage** to continue the original implementer
+agent with the reviewer's feedback as the fix list (see
+"Continuation Strategy"). The implementer already has
+the test file and implementation context loaded — a
+fresh dispatch re-pays that cost. Then re-dispatch the
+code-reviewer (clean perspective on the fixed code).
+Maximum 3 rounds; on the 3rd rejection, stop. Report to
+the user: the module, the stage, all rejection reasons
+from every round verbatim, and ask whether to continue
+manually or change approach.
 
 ### Stage 7: Integrate
 
-After code reviewer approves:
+Announce "Stage 7: Integrate." After code reviewer
+approves:
 1. Update build files if needed (CLAUDE.md)
 2. Run full test command (CLAUDE.md)
 3. Commit with a descriptive message
