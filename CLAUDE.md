@@ -84,10 +84,37 @@ All plugins use 0.x semver (pre-stable).
 ### SKILL.md Format
 
 Skills use YAML frontmatter with these fields:
-- `name`, `description` -- required
+- `description` -- required
+- `name` -- optional; derived from the skill directory
+  when omitted. The zig-* and tiger-* skills omit it on
+  purpose -- do not "fix" them by adding it.
 - `user-invocable: true` -- for slash commands
+- `disable-model-invocation: true` plus `argument-hint`
+  -- for user-only audit skills (`zig-check`,
+  `tiger-check`) that must never auto-invoke
 - Agent role skills omit `user-invocable` (injected into
   agent prompts by the orchestrator, not called directly)
+
+### Plugin Wiring Rules
+
+Each of these caused a real bug; none is guessable:
+
+- Never add a `hooks` field to plugin.json.
+  Auto-discovery loads `hooks/hooks.json`; an explicit
+  reference double-loads the hook (d249f39).
+- The zig-claude-kit SessionStart hook's idempotency
+  marker is the fragment's own heading (`## Zig
+  0.1N.x Training Corrections`). Change a fragment's
+  heading without updating the grep in session-start.sh
+  and the hook re-fires every session.
+- cross-review's fragment ships `codex-script:` and
+  `review-focus:` commented out on purpose;
+  sentinel-shaped values mean "unset". Don't uncomment
+  them.
+- Model ids and the codex dependency name appear in
+  README, CLAUDE.md, plugin.json, and SKILL.md. Update
+  all four in one pass; partial renames have shipped
+  stale warnings before (53742a7, bb20f65).
 
 ### Composition Model
 
@@ -121,11 +148,26 @@ Run from `plugins/zig-claude-kit/`:
 ```bash
 make eval                              # test all models
 make eval-model MODEL=claude-haiku-4-5 # test one model
-make compile-test MODEL=claude-sonnet-4-6
-make audit                             # probe current Zig
+make compile-test MODEL=claude-sonnet-4-6 VERSION=0.15
+make audit      # alias for audit-015; audit-016 and
+                # audit-all also exist
 ```
 
 Requires `ANTHROPIC_API_KEY` and `uv`.
+
+## Gotchas
+
+- `strict` in marketplace.json differs per plugin on
+  purpose (true for zig-claude-kit and tiger-style,
+  false for the rest). Don't blanket-change it.
+- `.worktrees/` holds stale plugin copies; never treat
+  its contents as canonical.
+- The tdd-pipeline's known failure mode is the
+  default-value trap: a test asserting a falsy value
+  (`false`, `nil`, `0`, `""`) against a stub returning
+  that same default passes immediately and never goes
+  red. The pipeline docs carry guidance (ddf7c0c); keep
+  it when editing them.
 
 ## Writing Style
 
