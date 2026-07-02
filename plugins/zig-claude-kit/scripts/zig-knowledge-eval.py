@@ -4,7 +4,7 @@
 # dependencies = ["anthropic"]
 # ///
 """
-Evaluate Claude models' Zig 0.15.x knowledge.
+Evaluate Claude models' Zig knowledge against 0.15.x or 0.16.x.
 
 Sends prompts to the Claude API with no project context, extracts
 generated Zig code, and compile-tests it to measure how many
@@ -13,10 +13,20 @@ patterns each model gets right vs. wrong.
 Usage:
     uv run scripts/zig-knowledge-eval.py
     uv run scripts/zig-knowledge-eval.py --models claude-sonnet-4-6
+    uv run scripts/zig-knowledge-eval.py --version 0.16
+    uv run scripts/zig-knowledge-eval.py --zig /path/to/zig
     uv run scripts/zig-knowledge-eval.py --skip-compile
+
+The default Zig binary is `zig` on PATH. Pass --zig to point at a
+specific install (e.g. for testing the same prompts against both
+0.15.2 and 0.16.0). --version selects which prompt set to use:
+0.15 = the original 14 probes; 0.16 = those plus 4 new probes
+covering the 0.16-specific changes (Io interface, std.fs ->
+std.Io, indexOf -> find, etc.).
 """
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -101,7 +111,37 @@ PROMPTS = [
     ),
 ]
 
-DEFAULT_MODELS = ["claude-sonnet-4-6", "claude-opus-4-6"]
+# Probes for 0.16-specific patterns. Same shape as PROMPTS; appended
+# when --version 0.16 is selected.
+PROMPTS_016 = [
+    (
+        "15_file_io",
+        "Write a Zig function that opens a file 'data.txt', reads"
+        " the entire contents into a buffer, and closes the file."
+        " Just the code.",
+    ),
+    (
+        "16_index_of",
+        "Write a Zig function that finds the first occurrence of"
+        ' the substring "foo" in a haystack []const u8 and returns'
+        " its index, or null. Use the standard library. Just the"
+        " code.",
+    ),
+    (
+        "17_child_process",
+        "Write a Zig function that runs the 'ls' command as a"
+        " subprocess and captures its stdout into a buffer. Just"
+        " the code.",
+    ),
+    (
+        "18_thread_mutex",
+        "Write a Zig program that uses a Mutex from the standard"
+        " library to protect shared state across two threads. Just"
+        " the code.",
+    ),
+]
+
+DEFAULT_MODELS = ["claude-sonnet-4-6", "claude-opus-4-7"]
 
 
 def extract_zig_code(text: str) -> str | None:
@@ -146,7 +186,7 @@ def query_model(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Evaluate Claude models' Zig 0.15.x knowledge",
+        description="Evaluate Claude models' Zig knowledge",
     )
     parser.add_argument(
         "--models",
@@ -165,24 +205,49 @@ def main():
         action="store_true",
         help="Skip compilation testing",
     )
+    parser.add_argument(
+        "--version",
+        choices=["0.15", "0.16"],
+        default="0.15",
+        help=(
+            "Prompt set to use. 0.15 = original 14 probes;"
+            " 0.16 = those plus 4 new 0.16-specific probes."
+            " Default: 0.15."
+        ),
+    )
+    parser.add_argument(
+        "--zig",
+        default=None,
+        help=(
+            "Path to the Zig binary used for compile-testing."
+            " If omitted, the test harness uses `zig` from PATH."
+            " The path is exported as $ZIG to the test script."
+        ),
+    )
     args = parser.parse_args()
+
+    prompts = list(PROMPTS)
+    if args.version == "0.16":
+        prompts += PROMPTS_016
 
     client = anthropic.Anthropic()
     script_dir = Path(__file__).parent
     test_script = script_dir / "zig-knowledge-test.sh"
 
     for model in args.models:
-        model_dir = args.output_dir / model
+        # Tag the output dir with the version so 0.15 and 0.16 runs
+        # don't clobber each other.
+        model_dir = args.output_dir / f"{model}-{args.version}"
         model_dir.mkdir(parents=True, exist_ok=True)
 
         print(f"\n{'=' * 60}")
-        print(f"  Model: {model}")
+        print(f"  Model: {model}  (Zig {args.version})")
         print(f"{'=' * 60}")
 
         generated = 0
         skipped = 0
 
-        for name, prompt in PROMPTS:
+        for name, prompt in prompts:
             print(f"  {name:30s}", end="", flush=True)
 
             try:
@@ -208,10 +273,14 @@ def main():
         print(f"\n  Generated: {generated}, Skipped: {skipped}")
 
         if not args.skip_compile and test_script.exists():
-            print(f"\n--- Compile testing: {model} ---")
+            print(f"\n--- Compile testing: {model} (Zig {args.version}) ---")
+            env = os.environ.copy()
+            if args.zig:
+                env["ZIG"] = args.zig
             subprocess.run(
                 [str(test_script), str(model_dir)],
                 check=False,
+                env=env,
             )
 
     print()

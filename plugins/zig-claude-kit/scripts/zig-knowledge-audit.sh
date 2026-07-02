@@ -1,26 +1,65 @@
 #!/usr/bin/env bash
 # zig-knowledge-audit.sh - Validate Zig breaking change claims
 #
-# This script tests the claims in docs/ZIG_BREAKING_CHANGES.md by
-# compiling small Zig code snippets ("probes"). Each probe checks
-# whether a specific old API pattern still compiles.
+# This script tests the claims in docs/<version>/ZIG_BREAKING_CHANGES.md
+# by compiling small Zig code snippets ("probes"). Each probe
+# checks whether a specific old API pattern still compiles, or
+# whether a specific new pattern works.
 #
 # Usage:
-#   ./scripts/zig-knowledge-audit.sh
+#   ./scripts/zig-knowledge-audit.sh [--version 0.15|0.16]
+#   ZIG=/path/to/zig ./scripts/zig-knowledge-audit.sh --version 0.16
+#
+# The Zig binary used is taken from $ZIG if set, otherwise from
+# `zig` on PATH. --version selects which probe set to run; defaults
+# to 0.15 (preserves the original behavior). The selected version
+# also dictates which docs file the probes correspond to.
 #
 # Interpreting results:
 #   PASS - The probe result matched expectations. If the expected
 #          result was "fail", the old API really is broken. If
 #          "pass", the new API really works.
 #   FAIL - Surprise! The result did not match expectations. This
-#          means docs/ZIG_BREAKING_CHANGES.md has a wrong claim
-#          and needs updating.
+#          means docs/<version>/ZIG_BREAKING_CHANGES.md has a wrong
+#          claim and needs updating.
 #
 # Exit code:
 #   0 - All probes matched expectations
 #   1 - One or more surprises found (docs need updating)
 
 set -euo pipefail
+
+ZIG="${ZIG:-zig}"
+VERSION="0.15"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --version)
+            VERSION="$2"
+            shift 2
+            ;;
+        --version=*)
+            VERSION="${1#--version=}"
+            shift
+            ;;
+        -h|--help)
+            sed -n '2,29p' "$0"
+            exit 0
+            ;;
+        *)
+            echo "Unknown arg: $1" >&2
+            exit 2
+            ;;
+    esac
+done
+
+case "$VERSION" in
+    0.15|0.16) ;;
+    *)
+        echo "Unknown --version: $VERSION (expected 0.15 or 0.16)" >&2
+        exit 2
+        ;;
+esac
 
 # Color support (respect NO_COLOR convention)
 if [[ -z "${NO_COLOR:-}" ]]; then
@@ -39,31 +78,41 @@ fi
 
 PASS_COUNT=0
 FAIL_COUNT=0
+SKIP_COUNT=0
 
 AUDIT_TMPDIR=$(mktemp -d)
 trap 'rm -rf "$AUDIT_TMPDIR"' EXIT
 
+# probe NAME DESCRIPTION EXPECTED APPLIES_TO CODE
+#   applies_to: "0.15", "0.16", or "both"
+#   expected:   "pass" or "fail"
 probe() {
     local name="$1"
     local description="$2"
     local expected="$3"
-    local code="$4"
+    local applies_to="$4"
+    local code="$5"
+
+    if [[ "$applies_to" != "both" && "$applies_to" != "$VERSION" ]]; then
+        SKIP_COUNT=$((SKIP_COUNT + 1))
+        return
+    fi
 
     local file="$AUDIT_TMPDIR/${name}.zig"
     echo "$code" > "$file"
 
-    if zig test "$file" --color off 2>/dev/null 1>/dev/null; then
+    if "$ZIG" test "$file" --color off 2>/dev/null 1>/dev/null; then
         actual="pass"
     else
         actual="fail"
     fi
 
     if [[ "$actual" == "$expected" ]]; then
-        printf "  ${GREEN}PASS${RESET}  %-35s %s\n" \
+        printf "  ${GREEN}PASS${RESET}  %-40s %s\n" \
             "$name" "$description"
         PASS_COUNT=$((PASS_COUNT + 1))
     else
-        printf "  ${RED}FAIL${RESET}  %-35s %s ${DIM}(expected %s, got %s)${RESET}\n" \
+        printf "  ${RED}FAIL${RESET}  %-40s %s ${DIM}(expected %s, got %s)${RESET}\n" \
             "$name" "$description" "$expected" "$actual"
         FAIL_COUNT=$((FAIL_COUNT + 1))
     fi
@@ -71,8 +120,8 @@ probe() {
 
 # Header
 echo ""
-printf "${BOLD}Zig Knowledge Audit${RESET}\n"
-printf "${DIM}Testing breaking change claims against zig $(zig version)${RESET}\n"
+printf "${BOLD}Zig Knowledge Audit${RESET} (version: ${BOLD}%s${RESET})\n" "$VERSION"
+printf "${DIM}Testing claims against zig %s (%s)${RESET}\n" "$("$ZIG" version)" "$ZIG"
 
 # ── I/O (Writergate) ──
 
@@ -80,7 +129,7 @@ printf "\n${BOLD}── I/O (Writergate) ──${RESET}\n"
 
 probe "old_getStdOut" \
     "std.io.getStdOut() removed" \
-    "fail" \
+    "fail" "both" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
@@ -92,7 +141,7 @@ ZIGEOF
 
 probe "old_getStdErr" \
     "std.io.getStdErr() removed" \
-    "fail" \
+    "fail" "both" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
@@ -102,9 +151,20 @@ test "probe" {
 ZIGEOF
 )"
 
-probe "new_buffered_writer" \
-    "Buffered writer pattern works" \
-    "pass" \
+probe "old_BufferedWriter" \
+    "std.io.BufferedWriter removed" \
+    "fail" "both" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" {
+    _ = std.io.BufferedWriter;
+}
+ZIGEOF
+)"
+
+probe "new_buffered_writer_015" \
+    "0.15 buffered writer pattern" \
+    "pass" "0.15" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
@@ -117,13 +177,63 @@ test "probe" {
 ZIGEOF
 )"
 
-probe "old_BufferedWriter" \
-    "std.io.BufferedWriter removed" \
-    "fail" \
+probe "old_fs_File_namespace" \
+    "std.fs.File namespace moved to std.Io.File" \
+    "fail" "0.16" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" { _ = std.fs.File.stdout(); }
+ZIGEOF
+)"
+
+probe "new_Io_File_namespace" \
+    "std.Io.File.stdout() works" \
+    "pass" "0.16" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" { _ = std.Io.File.stdout(); }
+ZIGEOF
+)"
+
+probe "new_writerStreaming_016" \
+    "0.16 buffered stdout pattern (writerStreaming with io)" \
+    "pass" "0.16" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+pub fn main(init: std.process.Init) !void {
+    var buf: [4096]u8 = undefined;
+    var w = std.Io.File.stdout().writerStreaming(init.io, &buf);
+    const stdout = &w.interface;
+    defer stdout.flush() catch {};
+    try stdout.writeAll("hello\n");
+}
+ZIGEOF
+)"
+
+probe "old_close_without_io" \
+    "file.close() without io fails in 0.16" \
+    "fail" "0.16" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
-    _ = std.io.BufferedWriter;
+    var io_threaded: std.Io.Threaded = .init_single_threaded;
+    const io = io_threaded.io();
+    const f = try std.Io.Dir.cwd().openFile(io, "/etc/hosts", .{});
+    f.close();
+}
+ZIGEOF
+)"
+
+probe "new_close_with_io" \
+    "file.close(io) works in 0.16" \
+    "pass" "0.16" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" {
+    var io_threaded: std.Io.Threaded = .init_single_threaded;
+    const io = io_threaded.io();
+    const f = try std.Io.Dir.cwd().openFile(io, "/etc/hosts", .{});
+    f.close(io);
 }
 ZIGEOF
 )"
@@ -133,21 +243,21 @@ ZIGEOF
 printf "\n${BOLD}── Collections ──${RESET}\n"
 
 probe "old_arraylist_no_allocator" \
-    "ArrayListUnmanaged without allocator args" \
-    "fail" \
+    "ArrayListUnmanaged without allocator args fails" \
+    "fail" "both" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
-    var list = std.ArrayListUnmanaged(u32){};
+    var list: std.ArrayListUnmanaged(u32) = .empty;
     defer list.deinit();
     list.append(42) catch {};
 }
 ZIGEOF
 )"
 
-probe "new_arraylist_unmanaged" \
-    "ArrayListUnmanaged preferred pattern" \
-    "pass" \
+probe "new_arraylist_empty_015" \
+    "ArrayListUnmanaged{} literal init (0.15)" \
+    "pass" "0.15" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
@@ -158,9 +268,47 @@ test "probe" {
 ZIGEOF
 )"
 
+probe "old_arraylist_struct_literal" \
+    "ArrayListUnmanaged{} literal init removed in 0.16" \
+    "fail" "0.16" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" {
+    var list = std.ArrayListUnmanaged(u32){};
+    _ = &list;
+}
+ZIGEOF
+)"
+
+probe "new_arraylist_empty_decl_literal" \
+    ".empty decl literal initializes ArrayListUnmanaged in 0.16" \
+    "pass" "0.16" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" {
+    var list: std.ArrayListUnmanaged(u32) = .empty;
+    defer list.deinit(std.testing.allocator);
+    try list.append(std.testing.allocator, 42);
+}
+ZIGEOF
+)"
+
+probe "new_arraylist_alias_in_016" \
+    "std.ArrayList is alias for unmanaged in 0.16" \
+    "pass" "0.16" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" {
+    var list: std.ArrayList(u32) = .empty;
+    defer list.deinit(std.testing.allocator);
+    try list.append(std.testing.allocator, 42);
+}
+ZIGEOF
+)"
+
 probe "old_arraylist_managed_init" \
-    "ArrayList.init(allocator) removed" \
-    "fail" \
+    "ArrayList(T).init(allocator) managed API removed" \
+    "fail" "both" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
@@ -173,7 +321,7 @@ ZIGEOF
 
 probe "old_BoundedArray" \
     "std.BoundedArray removed" \
-    "fail" \
+    "fail" "both" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
@@ -185,7 +333,7 @@ ZIGEOF
 
 probe "new_BoundedArray_replacement" \
     "ArrayListUnmanaged.initBuffer replacement" \
-    "pass" \
+    "pass" "both" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
@@ -202,36 +350,28 @@ printf "\n${BOLD}── Language Features ──${RESET}\n"
 
 probe "old_usingnamespace" \
     "usingnamespace removed" \
-    "fail" \
+    "fail" "both" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
-const Mixin = struct {
-    pub fn hello() void {}
-};
-const Foo = struct {
-    pub usingnamespace Mixin;
-};
-test "probe" {
-    Foo.hello();
-}
+const Mixin = struct { pub fn hello() void {} };
+const Foo = struct { pub usingnamespace Mixin; };
+test "probe" { Foo.hello(); }
 ZIGEOF
 )"
 
 probe "old_async_await" \
     "async/await removed" \
-    "fail" \
+    "fail" "both" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 fn asyncFn() !void {}
-test "probe" {
-    _ = async asyncFn();
-}
+test "probe" { _ = async asyncFn(); }
 ZIGEOF
 )"
 
 probe "old_division_signed" \
-    "Runtime signed division with / operator" \
-    "fail" \
+    "Runtime signed division with / fails" \
+    "fail" "both" \
     "$(cat <<'ZIGEOF'
 test "probe" {
     var a: i32 = 10;
@@ -246,7 +386,7 @@ ZIGEOF
 
 probe "new_divTrunc" \
     "@divTrunc for runtime signed division" \
-    "pass" \
+    "pass" "both" \
     "$(cat <<'ZIGEOF'
 test "probe" {
     var a: i32 = 10;
@@ -259,39 +399,66 @@ test "probe" {
 ZIGEOF
 )"
 
-# ── Testing ──
-
-printf "\n${BOLD}── Testing ──${RESET}\n"
-
-probe "expectEqualStrings" \
-    "expectEqualStrings still exists" \
-    "pass" \
+probe "old_at_Type_int" \
+    "@Type(.{ .int = ... }) removed in 0.16" \
+    "fail" "0.16" \
     "$(cat <<'ZIGEOF'
-const std = @import("std");
 test "probe" {
-    try std.testing.expectEqualStrings("hello", "hello");
+    const T = @Type(.{ .int = .{ .signedness = .unsigned, .bits = 10 } });
+    _ = T;
 }
 ZIGEOF
 )"
 
-probe "expectEqualSlices" \
-    "expectEqualSlices works" \
-    "pass" \
+probe "new_at_Int_builtin" \
+    "@Int(.unsigned, N) builtin works in 0.16" \
+    "pass" "0.16" \
     "$(cat <<'ZIGEOF'
-const std = @import("std");
 test "probe" {
-    try std.testing.expectEqualSlices(u8, "hello", "hello");
+    const T = @Int(.unsigned, 10);
+    _ = T;
 }
 ZIGEOF
 )"
 
-# ── String Operations ──
+# ── Concurrency ──
 
-printf "\n${BOLD}── String Operations ──${RESET}\n"
+printf "\n${BOLD}── Concurrency ──${RESET}\n"
+
+probe "old_thread_mutex" \
+    "std.Thread.Mutex moved to std.Io.Mutex in 0.16" \
+    "fail" "0.16" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" { var m: std.Thread.Mutex = .{}; _ = &m; }
+ZIGEOF
+)"
+
+probe "new_io_mutex_exists" \
+    "std.Io.Mutex exists in 0.16" \
+    "pass" "0.16" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" { _ = std.Io.Mutex; }
+ZIGEOF
+)"
+
+probe "old_thread_mutex_015" \
+    "std.Thread.Mutex still works in 0.15" \
+    "pass" "0.15" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" { var m: std.Thread.Mutex = .{}; _ = &m; }
+ZIGEOF
+)"
+
+# ── String / Mem ──
+
+printf "\n${BOLD}── String / Mem ──${RESET}\n"
 
 probe "old_mem_tokenize" \
-    "std.mem.tokenize old name" \
-    "fail" \
+    "std.mem.tokenize old name removed" \
+    "fail" "both" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
@@ -303,7 +470,7 @@ ZIGEOF
 
 probe "new_mem_tokenizeAny" \
     "std.mem.tokenizeAny replacement" \
-    "pass" \
+    "pass" "both" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
@@ -313,13 +480,40 @@ test "probe" {
 ZIGEOF
 )"
 
+probe "indexOf_deprecated_alias" \
+    "std.mem.indexOf is a deprecated alias for find in 0.16 (still compiles)" \
+    "pass" "0.16" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" { _ = std.mem.indexOf(u8, "hello", "ll"); }
+ZIGEOF
+)"
+
+probe "new_mem_find" \
+    "std.mem.find replaces indexOf in 0.16" \
+    "pass" "0.16" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" { _ = std.mem.find(u8, "hello", "ll"); }
+ZIGEOF
+)"
+
+probe "new_mem_cut" \
+    "std.mem.cut family added in 0.16" \
+    "pass" "0.16" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" { _ = std.mem.cut(u8, "key=value", "="); }
+ZIGEOF
+)"
+
 # ── Process ──
 
 printf "\n${BOLD}── Process ──${RESET}\n"
 
-probe "old_process_args" \
-    "std.process.args() iterator" \
-    "pass" \
+probe "old_process_args_iter_015" \
+    "std.process.args() iterator (0.15)" \
+    "pass" "0.15" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
@@ -329,9 +523,21 @@ test "probe" {
 ZIGEOF
 )"
 
-probe "new_process_argsAlloc" \
-    "std.process.argsAlloc pattern" \
-    "pass" \
+probe "old_process_args_iter_016" \
+    "std.process.args() removed in 0.16" \
+    "fail" "0.16" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" {
+    var args = std.process.args();
+    _ = args.next();
+}
+ZIGEOF
+)"
+
+probe "old_process_argsAlloc_015" \
+    "std.process.argsAlloc still works in 0.15" \
+    "pass" "0.15" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
@@ -342,13 +548,25 @@ test "probe" {
 ZIGEOF
 )"
 
+probe "old_process_argsAlloc_016" \
+    "std.process.argsAlloc removed in 0.16" \
+    "fail" "0.16" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" {
+    const args = try std.process.argsAlloc(std.testing.allocator);
+    _ = args;
+}
+ZIGEOF
+)"
+
 # ── JSON ──
 
 printf "\n${BOLD}── JSON ──${RESET}\n"
 
 probe "old_json_parser" \
-    "std.json.Parser old API" \
-    "fail" \
+    "std.json.Parser old API removed" \
+    "fail" "both" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
@@ -360,7 +578,7 @@ ZIGEOF
 
 probe "new_json_parseFromSlice" \
     "std.json.parseFromSlice new API" \
-    "pass" \
+    "pass" "both" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 const T = struct { x: i32 };
@@ -377,9 +595,15 @@ ZIGEOF
 
 printf "\n${BOLD}── Format Strings ──${RESET}\n"
 
+# 0.15-only: in 0.15 the old format-method shape with `comptime fmt`
+# made `"{}"` a hard compile error. In 0.16 the same code compiles
+# (no error), but `"{}"` no longer invokes a custom format method —
+# you must use `"{f}"` to dispatch to it. The audit can't observe
+# that semantic difference (only compile pass/fail), so this probe
+# is restricted to 0.15.
 probe "old_format_empty_braces" \
-    "Empty {} format specifier for custom types" \
-    "fail" \
+    "Empty {} format specifier for custom types fails (0.15)" \
+    "fail" "0.15" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 const Foo = struct {
@@ -400,7 +624,7 @@ ZIGEOF
 
 probe "new_format_method" \
     "New format method signature with {f}" \
-    "pass" \
+    "pass" "both" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 const Foo = struct {
@@ -417,13 +641,39 @@ test "probe" {
 ZIGEOF
 )"
 
+# ── Testing ──
+
+printf "\n${BOLD}── Testing ──${RESET}\n"
+
+probe "expectEqualStrings" \
+    "expectEqualStrings still exists" \
+    "pass" "both" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" {
+    try std.testing.expectEqualStrings("hello", "hello");
+}
+ZIGEOF
+)"
+
+probe "expectEqualSlices" \
+    "expectEqualSlices works" \
+    "pass" "both" \
+    "$(cat <<'ZIGEOF'
+const std = @import("std");
+test "probe" {
+    try std.testing.expectEqualSlices(u8, "hello", "hello");
+}
+ZIGEOF
+)"
+
 # ── New Features ──
 
 printf "\n${BOLD}── New Features ──${RESET}\n"
 
 probe "new_destructuring" \
     "Destructuring assignments work" \
-    "pass" \
+    "pass" "both" \
     "$(cat <<'ZIGEOF'
 test "probe" {
     const tuple = .{ @as(i32, 1), @as(i32, 2), @as(i32, 3) };
@@ -437,7 +687,7 @@ ZIGEOF
 
 probe "new_multi_for" \
     "Multi-object for loops work" \
-    "pass" \
+    "pass" "both" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
@@ -453,8 +703,8 @@ ZIGEOF
 )"
 
 probe "old_DoublyLinkedList" \
-    "Generic DoublyLinkedList removed" \
-    "fail" \
+    "Generic DoublyLinkedList(T) removed" \
+    "fail" "both" \
     "$(cat <<'ZIGEOF'
 const std = @import("std");
 test "probe" {
@@ -467,17 +717,20 @@ ZIGEOF
 # Summary
 total=$((PASS_COUNT + FAIL_COUNT))
 echo ""
-printf "${BOLD}Summary${RESET}: %d probes, " "$total"
+printf "${BOLD}Summary${RESET}: %d probes run, " "$total"
 printf "${GREEN}%d confirmed${RESET}, " "$PASS_COUNT"
 if [[ $FAIL_COUNT -gt 0 ]]; then
     printf "${RED}%d surprises${RESET}" "$FAIL_COUNT"
 else
     printf "0 surprises"
 fi
+if [[ $SKIP_COUNT -gt 0 ]]; then
+    printf " ${DIM}(%d skipped — not applicable to %s)${RESET}" "$SKIP_COUNT" "$VERSION"
+fi
 echo ""
 
 if [[ $FAIL_COUNT -gt 0 ]]; then
     echo ""
-    echo "Surprises indicate docs/ZIG_BREAKING_CHANGES.md needs updating."
+    echo "Surprises indicate docs/$VERSION/ZIG_BREAKING_CHANGES.md needs updating."
     exit 1
 fi

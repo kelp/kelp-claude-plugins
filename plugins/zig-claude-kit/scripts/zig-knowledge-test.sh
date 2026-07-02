@@ -8,7 +8,11 @@
 #
 # Usage:
 #   ./scripts/zig-knowledge-test.sh <directory>
-#   ./scripts/zig-knowledge-test.sh probes/
+#   ZIG=/path/to/zig ./scripts/zig-knowledge-test.sh probes/
+#
+# The Zig binary used is taken from $ZIG if set, otherwise from
+# `zig` on PATH. Override $ZIG to test the same probes against
+# multiple Zig versions (e.g. 0.15.2 vs 0.16.0).
 #
 # Each .zig file is tested independently. Results show which
 # patterns Claude got right vs. wrong.
@@ -21,6 +25,7 @@ if [[ $# -lt 1 ]]; then
 fi
 
 DIR="$1"
+ZIG="${ZIG:-zig}"
 
 if [[ ! -d "$DIR" ]]; then
     echo "Error: $DIR is not a directory"
@@ -49,7 +54,7 @@ trap '[[ -n "${TMPDIR_OBJ:-}" ]] && rm -rf "$TMPDIR_OBJ"' EXIT
 
 echo ""
 printf "${BOLD}Zig Knowledge Test${RESET}\n"
-printf "${DIM}Compiling probes against zig %s${RESET}\n" "$(zig version)"
+printf "${DIM}Compiling probes against zig %s (%s)${RESET}\n" "$("$ZIG" version)" "$ZIG"
 echo ""
 
 for file in "$DIR"/*.zig; do
@@ -58,13 +63,13 @@ for file in "$DIR"/*.zig; do
 
     # Detect if file has test blocks or a main function
     if grep -q 'test "' "$file" 2>/dev/null; then
-        cmd="zig test"
+        cmd=("$ZIG" test)
     else
-        cmd="zig build-obj"
+        cmd=("$ZIG" build-obj)
     fi
 
     TMPDIR_OBJ=$(mktemp -d)
-    if $cmd "$file" --color off \
+    if "${cmd[@]}" "$file" --color off \
         -femit-bin="$TMPDIR_OBJ/out" \
         2>"$TMPDIR_OBJ/stderr" 1>/dev/null; then
         printf "  ${GREEN}COMPILES${RESET}  %s\n" "$name"

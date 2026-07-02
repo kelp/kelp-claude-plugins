@@ -7,8 +7,9 @@ when working with code in this repository.
 
 A Claude Code plugin marketplace containing these plugins:
 
-- **zig-claude-kit** -- corrective context for Zig 0.15.x
-  that fixes Claude's outdated training data
+- **zig-claude-kit** -- corrective context for Zig that
+  fixes Claude's outdated training data; auto-detects
+  0.15.x vs 0.16.x and uses the matching reference
 - **tiger-style** -- TigerBeetle's Tiger Style methodology
   for Zig (assertions, bounded loops, static memory,
   snake_case naming, 70-line / 100-col limits)
@@ -33,8 +34,10 @@ plugins/
     .claude-plugin/plugin.json     # manifest (version here)
     skills/                        # zig-init, zig-patterns, zig-check
     hooks/hooks.json               # SessionStart hook
-    scripts/                       # eval suite + session-start
-    docs/                          # fragment, breaking changes ref
+    scripts/                       # eval suite, session-start,
+                                   #   detect-zig-version
+    docs/0.15/                     # fragment, breaking changes ref
+    docs/0.16/                     # fragment, breaking changes ref
   tiger-style/
     .claude-plugin/plugin.json     # manifest (version here)
     skills/                        # tiger-init, tiger-patterns, tiger-check
