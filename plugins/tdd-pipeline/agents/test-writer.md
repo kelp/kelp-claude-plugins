@@ -2,6 +2,7 @@
 name: test-writer
 description: Test-writing role for the tdd-pipeline plugin. Writes ONLY the test file and minimal type stubs for a module — never the real implementation. Dispatched by tdd-orchestrate; not for direct user invocation.
 tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, LS
+model: opus
 ---
 
 # Test Writer
