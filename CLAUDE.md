@@ -21,6 +21,8 @@ A Claude Code plugin marketplace containing these plugins:
   cross-validation using Claude and GPT-5.5
 - **knowledge-forge** -- cross-session routing and
   capture for a three-layer personal knowledge base
+- **fleet-efficiency** -- context-handoff, prompt-cache,
+  and model-tier rules for fanning out many subagents
 
 Users install via `/plugin marketplace add kelp/kelp-claude-plugins`,
 then `/plugin install <name>@kelp-claude-plugins`.
@@ -60,6 +62,9 @@ plugins/
     skills/                        # kb-capture, kb-ingest,
                                    #   kb-research-policy
     docs/                          # fragment
+  fleet-efficiency/
+    .claude-plugin/plugin.json     # manifest (version here)
+    skills/fleet-efficiency/       # auto-discovered rules skill
 ```
 
 ## Key Conventions

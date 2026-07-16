@@ -9,6 +9,8 @@ Claude Code plugins by kelp:
 - **cross-review** -- gets a second opinion from GPT-5.5
 - **knowledge-forge** -- captures notes and routes
   retrieval for a personal knowledge base
+- **fleet-efficiency** -- token-efficient rules for
+  fanning out many subagents
 
 ## Install
 
@@ -172,6 +174,25 @@ This plugin is built around a specific personal-KB
 layout. Useful as a reference for plugins that integrate
 with a per-user knowledge store; adapt the paths and
 bucket conventions if you adopt it.
+
+### fleet-efficiency
+
+Context-handoff, prompt-cache, and model-tier rules for
+fanning out many subagents. A single auto-discovered
+skill loads before large parallel agent dispatches,
+Workflow scripts, audits, and migrations: scout once and
+brief many, keep fleet prompts byte-identical for the
+prompt cache, hand structured artifacts between pipeline
+stages, and name a model tier on every dispatch.
+
+```bash
+/plugin install fleet-efficiency@kelp-claude-plugins
+```
+
+No commands, hooks, or agents; the skill is
+model-invoked. The model-tier names (sonnet, opus,
+fable) assume Anthropic's current lineup; adjust the
+skill text if yours differs.
 
 ## Composition
 
