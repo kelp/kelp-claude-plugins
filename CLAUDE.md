@@ -19,6 +19,8 @@ A Claude Code plugin marketplace containing these plugins:
   not as separate agents)
 - **cross-review** -- multi-model code review with
   cross-validation using Claude and GPT-5.5
+- **codex-pair** -- pair programming with a persistent
+  Codex (GPT-5.5) partner over one long-lived thread
 - **knowledge-forge** -- cross-session routing and
   capture for a three-layer personal knowledge base
 - **fleet-efficiency** -- context-handoff, prompt-cache,
@@ -57,6 +59,11 @@ plugins/
     skills/cross-review/           # orchestrator skill
     agents/                        # reviewer, validator
     docs/                          # fragment
+  codex-pair/
+    .claude-plugin/plugin.json     # manifest (version here)
+    skills/pair/                   # orchestrator skill
+    scripts/                       # codex-pair.mjs, lib.mjs
+    tests/                         # cli.test.mjs, lib.test.mjs
   knowledge-forge/
     .claude-plugin/plugin.json     # manifest (version here)
     skills/                        # kb-capture, kb-ingest,

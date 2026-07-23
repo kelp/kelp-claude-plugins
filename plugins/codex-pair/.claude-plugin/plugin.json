@@ -1,0 +1,10 @@
+{
+  "name": "codex-pair",
+  "description": "Pair programming with a persistent Codex (GPT-5.5) partner. Claude drives and edits files while Codex navigates and reviews in a read-only sandbox, all through one long-lived thread that survives restarts.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Travis Cole"
+  },
+  "homepage": "https://github.com/kelp/kelp-claude-plugins",
+  "repository": "https://github.com/kelp/kelp-claude-plugins"
+}

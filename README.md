@@ -7,6 +7,7 @@ Claude Code plugins by kelp:
   Zig projects
 - **tdd-pipeline** -- enforces TDD across separate agents
 - **cross-review** -- gets a second opinion from GPT-5.5
+- **codex-pair** -- pairs with a persistent GPT-5.5 partner
 - **knowledge-forge** -- captures notes and routes
   retrieval for a personal knowledge base
 - **fleet-efficiency** -- token-efficient rules for
@@ -149,6 +150,39 @@ confirmed ones so humans can triage them.
 
 Without these, `/cross-review` falls back to claude-only
 mode and runs a single-model review.
+
+### codex-pair
+
+Pair programming with a persistent Codex (GPT-5.5) partner.
+`/pair start` pins a long-lived Codex thread; every `/pair`
+message, review, and verdict after that flows through the same
+thread for the rest of the session, so both sides keep full
+context. Claude drives -- it edits files -- while Codex
+navigates, reviewing in a read-only sandbox. State lives in
+`~/.claude/codex-pair/pairs.json` so `/pair resume` reattaches
+the thread after a restart.
+
+This complements cross-review: cross-review is a one-shot
+second opinion, codex-pair is a continuous partner that
+remembers the whole conversation.
+
+```bash
+/plugin install codex-pair@kelp-claude-plugins
+```
+
+**Commands:**
+- `/pair start [label]` -- pin a new long-lived Codex thread
+- `/pair <message>` -- send a message to the pinned thread
+- `/pair review` -- ask Codex to review in a read-only sandbox
+- `/pair resume [label]` -- reattach to a pinned thread after
+  a restart
+- `/pair status` -- show the active thread and its state
+- `/pair end [label]` -- close out a pinned thread
+
+**Requirements:**
+- [Codex CLI](https://github.com/openai/codex) >= 0.145,
+  authenticated
+- Node.js on `PATH`
 
 ### knowledge-forge
 

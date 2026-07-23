@@ -34,6 +34,12 @@
       "strict": false
     },
     {
+      "name": "codex-pair",
+      "source": "./plugins/codex-pair",
+      "description": "Pair programming with a persistent Codex (GPT-5.5) partner. Claude drives and edits files while Codex navigates and reviews in a read-only sandbox, all through one long-lived thread that survives restarts.",
+      "strict": false
+    },
+    {
       "name": "knowledge-forge",
       "source": "./plugins/knowledge-forge",
       "description": "Cross-session routing and capture for a three-layer personal knowledge base. Auto-discovered skill teaches index-first retrieval. /kb-capture files notes into the right wiki bucket. /kb-ingest downloads external doc packs from any session.",
