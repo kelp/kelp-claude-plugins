@@ -40,6 +40,11 @@ export function parseCliArgs(argv) {
     }
     switch (flag) {
       case "--label":
+        if (!/^[A-Za-z0-9._-]+$/.test(value)) {
+          throw new Error(
+            "invalid label: use only letters, digits, dot, dash, underscore"
+          );
+        }
         opts.label = value;
         break;
       case "--cwd":
@@ -94,6 +99,50 @@ export function parseEvents(text) {
   return result;
 }
 
+// Event fields are untrusted model/tool output headed for a
+// terminal: strip control characters (C0, DEL, C1 — covers ESC/CSI/
+// OSC sequences' introducers), collapse whitespace, cap length.
+function sanitize(value, max = 80) {
+  return String(value)
+    .replace(/[\x00-\x1f\x7f-\x9f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
+}
+
+const LINE_CAP = 100;
+
+// One compact line per interesting codex event, streamed to
+// stderr so a backgrounded send shows live progress. Returns
+// null for events not worth a line. Every branch sanitizes and
+// the final cap applies to the whole line.
+export function renderEventLine(event) {
+  let line;
+  switch (event?.type) {
+    case "thread.started":
+      line = `thread ${sanitize(event.thread_id)}`;
+      break;
+    case "turn.completed": {
+      const u = event.usage ?? {};
+      line = `turn done (in ${sanitize(u.input_tokens ?? "?")}, ` +
+        `out ${sanitize(u.output_tokens ?? "?")} tokens)`;
+      break;
+    }
+    case "turn.failed":
+      line = `turn failed: ${sanitize(event.error?.message ?? "unknown")}`;
+      break;
+    case "item.completed": {
+      const item = event.item ?? {};
+      const detail = sanitize(item.command ?? item.title ?? item.text ?? "");
+      line = `${sanitize(item.type ?? "item")}: ${detail}`;
+      break;
+    }
+    default:
+      return null;
+  }
+  return line.slice(0, LINE_CAP);
+}
+
 export function getPair(state, label) {
   return state.pairs.find((p) => p.label === label);
 }
@@ -110,6 +159,52 @@ export function removePair(state, label) {
     throw new Error(`no pair named '${label}' (have: ${labels})`);
   }
   return { ...state, pairs: state.pairs.filter((p) => p.label !== label) };
+}
+
+// In-flight tokens serialize whole operations per label, not just
+// state mutations: codex appends rollout events without file
+// locking, so two concurrent resumes of one thread can interleave
+// its conversation history. A token claimed under the state lock
+// makes the second operation fail fast instead. Tokens carry an
+// expiry (the operation's own timeout plus grace) so a crashed
+// owner never wedges the label.
+
+export function isInFlight(pair, nowMs) {
+  return Boolean(
+    pair?.inFlight && Date.parse(pair.inFlight.expiresAt) > nowMs
+  );
+}
+
+export function claimInFlight(state, label, token, nowMs) {
+  const pair = getPair(state, label);
+  if (!pair) {
+    const labels = state.pairs.map((p) => p.label).join(", ") || "none";
+    throw new Error(`no pair named '${label}' (have: ${labels})`);
+  }
+  if (isInFlight(pair, nowMs)) {
+    throw new Error(
+      `an operation is already in flight for '${label}' ` +
+        `(pid ${pair.inFlight.pid}, expires ${pair.inFlight.expiresAt}); ` +
+        "wait for it to finish"
+    );
+  }
+  return upsertPair(state, { ...pair, inFlight: token });
+}
+
+export function releaseInFlight(state, label, pid) {
+  const pair = getPair(state, label);
+  if (!pair || pair.inFlight?.pid !== pid) return state;
+  const { inFlight, ...rest } = pair;
+  return upsertPair(state, rest);
+}
+
+// Post-send bookkeeping, keyed on (label, threadId): if the pair
+// was ended and its label reused by a new thread while the send
+// was in flight, leave the new pair untouched.
+export function applySendUpdate(state, label, threadId, now) {
+  const fresh = getPair(state, label);
+  if (!fresh || fresh.threadId !== threadId) return state;
+  return upsertPair(state, { ...fresh, lastUsedAt: now, turns: fresh.turns + 1 });
 }
 
 export function buildStartArgs({ sandbox, model }) {

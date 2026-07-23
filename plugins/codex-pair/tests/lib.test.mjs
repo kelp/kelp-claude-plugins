@@ -6,8 +6,10 @@ import {
   getPair,
   upsertPair,
   removePair,
+  applySendUpdate,
   buildStartArgs,
-  buildSendArgs
+  buildSendArgs,
+  renderEventLine
 } from "../scripts/lib.mjs";
 
 // --- parseCliArgs ---
@@ -105,6 +107,84 @@ test("removePair removes, throws on missing", () => {
   const s2 = removePair(s1, "a");
   assert.equal(s2.pairs.length, 0);
   assert.throws(() => removePair(s2, "a"), /no pair/i);
+});
+
+// send's final state update must be keyed on (label, threadId),
+// not label alone: if the pair was ended and the label reused by
+// a new thread mid-flight, the update must not touch the new pair.
+test("applySendUpdate updates only the thread it talked to", () => {
+  const s = upsertPair({ pairs: [] }, pair("a"));
+  const hit = applySendUpdate(s, "a", "thread-a", "2026-07-23T00:00:00Z");
+  assert.equal(getPair(hit, "a").turns, 2);
+  assert.equal(getPair(hit, "a").lastUsedAt, "2026-07-23T00:00:00Z");
+
+  const reused = applySendUpdate(s, "a", "other-thread", "t");
+  assert.equal(getPair(reused, "a").turns, 1);
+
+  const gone = applySendUpdate({ pairs: [] }, "a", "thread-a", "t");
+  assert.deepEqual(gone.pairs, []);
+});
+
+// --- progress rendering ---
+
+test("renderEventLine renders compact progress lines", () => {
+  assert.equal(
+    renderEventLine({ type: "thread.started", thread_id: "t-1" }),
+    "thread t-1"
+  );
+  assert.equal(
+    renderEventLine({
+      type: "item.completed",
+      item: { type: "command_execution", command: "node --test tests/" }
+    }),
+    "command_execution: node --test tests/"
+  );
+  const long = renderEventLine({
+    type: "item.completed",
+    item: { type: "agent_message", text: "x".repeat(200) }
+  });
+  assert.ok(long.length <= 100);
+  assert.equal(
+    renderEventLine({
+      type: "turn.completed",
+      usage: { input_tokens: 10, output_tokens: 5 }
+    }),
+    "turn done (in 10, out 5 tokens)"
+  );
+  assert.equal(renderEventLine({ type: "some.unknown" }), null);
+});
+
+// Event fields are untrusted model/tool output headed for a
+// terminal: control sequences must be stripped, newlines
+// collapsed, and every rendered line capped, in every branch.
+test("renderEventLine sanitizes untrusted event text", () => {
+  const ctl = /[\x00-\x1f\x7f-\x9f]/;
+
+  const esc = renderEventLine({
+    type: "turn.failed",
+    error: { message: "bad\x1b]0;pwned\x07\x1b[2Jthing" }
+  });
+  assert.ok(!ctl.test(esc), "control chars leak");
+  assert.match(esc, /bad.*thing/);
+
+  const multi = renderEventLine({
+    type: "turn.failed",
+    error: { message: "line1\nline2\r\nline3" }
+  });
+  assert.ok(!multi.includes("\n"));
+  assert.match(multi, /line1 line2 line3/);
+
+  const huge = renderEventLine({
+    type: "turn.failed",
+    error: { message: "y".repeat(500) }
+  });
+  assert.ok(huge.length <= 100);
+
+  const evilThread = renderEventLine({
+    type: "thread.started",
+    thread_id: "t\x1b[31m-1"
+  });
+  assert.ok(!ctl.test(evilThread));
 });
 
 // --- codex argv construction ---
